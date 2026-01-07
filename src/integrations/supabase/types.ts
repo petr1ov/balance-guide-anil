@@ -14,7 +14,150 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      balance_scores: {
+        Row: {
+          created_at: string
+          finance: number | null
+          health: number | null
+          id: string
+          relationships: number | null
+          spirituality: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          finance?: number | null
+          health?: number | null
+          id?: string
+          relationships?: number | null
+          spirituality?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          finance?: number | null
+          health?: number | null
+          id?: string
+          relationships?: number | null
+          spirituality?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "balance_scores_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goals: {
+        Row: {
+          created_at: string
+          focus_area: string
+          id: string
+          ideal: string | null
+          month_plan: string | null
+          point_a: string | null
+          short_goal: string | null
+          updated_at: string
+          user_id: string
+          year_goal: string | null
+        }
+        Insert: {
+          created_at?: string
+          focus_area: string
+          id?: string
+          ideal?: string | null
+          month_plan?: string | null
+          point_a?: string | null
+          short_goal?: string | null
+          updated_at?: string
+          user_id: string
+          year_goal?: string | null
+        }
+        Update: {
+          created_at?: string
+          focus_area?: string
+          id?: string
+          ideal?: string | null
+          month_plan?: string | null
+          point_a?: string | null
+          short_goal?: string | null
+          updated_at?: string
+          user_id?: string
+          year_goal?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          id: string
+          language: string | null
+          name: string | null
+          telegram_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          language?: string | null
+          name?: string | null
+          telegram_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          language?: string | null
+          name?: string | null
+          telegram_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

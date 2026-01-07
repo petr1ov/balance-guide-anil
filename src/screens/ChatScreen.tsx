@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { MentorAvatar } from "@/components/MentorHeader";
 import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
+import { streamChat } from "@/lib/chat";
+import { toast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
@@ -10,11 +12,19 @@ interface Message {
   timestamp: Date;
 }
 
+const INITIAL_MESSAGE = `Привет! Я Anil, твой наставник по балансу жизни 🌱
+
+Я помогу тебе оценить текущее состояние четырёх ключевых сфер жизни и вместе мы составим план развития.
+
+Давай начнём? Оцени свою **Духовность** по шкале от 1 до 10.
+
+(1 — полное отсутствие гармонии, 10 — идеальный баланс)`;
+
 const ChatScreen = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      content: "Привет! Я Anil, твой наставник по балансу жизни. 🌱\n\nЯ помогу тебе оценить текущее состояние четырёх ключевых сфер и вместе мы составим план развития.\n\nС чего начнём?",
+      content: INITIAL_MESSAGE,
       isUser: false,
       timestamp: new Date(),
     },
@@ -41,25 +51,59 @@ const ChatScreen = () => {
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const responses = [
-        "Понимаю тебя. Давай разберёмся вместе. Расскажи подробнее о том, что тебя сейчас беспокоит в этой сфере?",
-        "Это важное наблюдение. Как ты оцениваешь эту область своей жизни по шкале от 1 до 10?",
-        "Хороший вопрос. Представь идеальное состояние — как бы выглядела твоя жизнь, если бы здесь всё было на 10 из 10?",
-        "Отлично, что ты осознаёшь это. Какой один маленький шаг ты мог бы сделать уже сегодня?",
-      ];
-      
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: responses[Math.floor(Math.random() * responses.length)],
-        isUser: false,
-        timestamp: new Date(),
-      };
-      
-      setMessages((prev) => [...prev, aiMessage]);
+    // Convert messages to API format
+    const apiMessages = [...messages, userMessage].map((m) => ({
+      role: m.isUser ? "user" as const : "assistant" as const,
+      content: m.content,
+    }));
+
+    let assistantSoFar = "";
+    const assistantId = (Date.now() + 1).toString();
+
+    const upsertAssistant = (nextChunk: string) => {
+      assistantSoFar += nextChunk;
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last && !last.isUser) {
+          return prev.map((m, i) =>
+            i === prev.length - 1 ? { ...m, content: assistantSoFar } : m
+          );
+        }
+        return [
+          ...prev,
+          {
+            id: assistantId,
+            content: assistantSoFar,
+            isUser: false,
+            timestamp: new Date(),
+          },
+        ];
+      });
+    };
+
+    try {
+      await streamChat({
+        messages: apiMessages,
+        onDelta: (chunk) => upsertAssistant(chunk),
+        onDone: () => setIsLoading(false),
+        onError: (error) => {
+          setIsLoading(false);
+          toast({
+            title: "Ошибка",
+            description: error,
+            variant: "destructive",
+          });
+        },
+      });
+    } catch (error) {
+      console.error("Chat error:", error);
       setIsLoading(false);
-    }, 1500);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось получить ответ. Попробуйте ещё раз.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -85,7 +129,7 @@ const ChatScreen = () => {
             timestamp={message.timestamp}
           />
         ))}
-        {isLoading && (
+        {isLoading && messages[messages.length - 1]?.isUser && (
           <div className="flex items-center gap-2 text-muted-foreground animate-fade-in">
             <div className="flex gap-1">
               <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
