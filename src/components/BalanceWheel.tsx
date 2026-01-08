@@ -1,5 +1,3 @@
-import { Heart, Sparkles, Leaf, Coins } from "lucide-react";
-
 interface BalanceScores {
   spirituality: number;
   relationships: number;
@@ -13,10 +11,10 @@ interface BalanceWheelProps {
 }
 
 const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
-  const size = 300;
+  const size = 320;
   const center = size / 2;
-  const outerRadius = size / 2 - 20;
-  const innerRadius = 35;
+  const outerRadius = size / 2 - 24;
+  const innerRadius = 40;
 
   const createSectorPath = (startAngle: number, endAngle: number) => {
     const startRad = (startAngle * Math.PI) / 180;
@@ -42,6 +40,7 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
     };
   };
 
+  // Colors from the visual guide
   const sectors = [
     { 
       key: "spirituality" as const, 
@@ -49,9 +48,9 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
       startAngle: -90, 
       endAngle: 0, 
       midAngle: -45, 
-      color: "#8b5cf6", 
-      lightColor: "#a78bfa",
-      icon: "✨"
+      gradientStart: "#B9B7FF",
+      gradientEnd: "#8B8AF8",
+      icon: "🧘"
     },
     { 
       key: "relationships" as const, 
@@ -59,19 +58,9 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
       startAngle: 0, 
       endAngle: 90, 
       midAngle: 45, 
-      color: "#ec4899", 
-      lightColor: "#f472b6",
+      gradientStart: "#FFB3B3",
+      gradientEnd: "#FF8A8A",
       icon: "❤️"
-    },
-    { 
-      key: "health" as const, 
-      label: "Здоровье", 
-      startAngle: 180, 
-      endAngle: 270, 
-      midAngle: 225, 
-      color: "#22c55e", 
-      lightColor: "#4ade80",
-      icon: "🌿"
     },
     { 
       key: "finance" as const, 
@@ -79,9 +68,19 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
       startAngle: 90, 
       endAngle: 180, 
       midAngle: 135, 
-      color: "#eab308", 
-      lightColor: "#facc15",
-      icon: "💰"
+      gradientStart: "#FFE3A1",
+      gradientEnd: "#F4C76C",
+      icon: "💼"
+    },
+    { 
+      key: "health" as const, 
+      label: "Здоровье", 
+      startAngle: 180, 
+      endAngle: 270, 
+      midAngle: 225, 
+      gradientStart: "#B4EBD0",
+      gradientEnd: "#7ED7A7",
+      icon: "💪"
     },
   ];
 
@@ -91,41 +90,60 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
-        className="drop-shadow-xl"
+        className="filter"
+        style={{ 
+          filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.12))"
+        }}
       >
         <defs>
+          {/* Radial gradients for each sector */}
           {sectors.map((sector) => (
-            <linearGradient 
+            <radialGradient 
               key={`grad-${sector.key}`} 
               id={`grad-${sector.key}`} 
-              x1="0%" 
-              y1="0%" 
-              x2="100%" 
-              y2="100%"
+              cx="50%" 
+              cy="50%" 
+              r="70%"
+              fx="30%"
+              fy="30%"
             >
-              <stop offset="0%" stopColor={sector.lightColor} />
-              <stop offset="100%" stopColor={sector.color} />
-            </linearGradient>
+              <stop offset="0%" stopColor={sector.gradientStart} />
+              <stop offset="100%" stopColor={sector.gradientEnd} />
+            </radialGradient>
           ))}
-          <filter id="wheelShadow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="4" stdDeviation="6" floodOpacity="0.2"/>
-          </filter>
+          
+          {/* Inner shadow filter for depth */}
           <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
-            <feDropShadow dx="0" dy="2" stdDeviation="4" floodOpacity="0.15"/>
+            <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur" />
+            <feOffset dx="0" dy="2" result="offsetBlur" />
+            <feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="shadowDiff" />
+            <feFlood floodColor="#000000" floodOpacity="0.15" />
+            <feComposite in2="shadowDiff" operator="in" />
+            <feComposite in2="SourceGraphic" operator="over" />
+          </filter>
+
+          {/* Outer glow for depth */}
+          <filter id="outerGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feComposite in="blur" in2="SourceGraphic" operator="out" />
+          </filter>
+
+          {/* Center shadow */}
+          <filter id="centerShadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="2" stdDeviation="4" floodOpacity="0.12"/>
           </filter>
         </defs>
 
-        {/* Background circle for shadow */}
+        {/* Background circle with soft glow */}
         <circle
           cx={center}
           cy={center}
-          r={outerRadius + 2}
+          r={outerRadius + 4}
           fill="white"
-          filter="url(#wheelShadow)"
-          opacity="0.5"
+          opacity="0.4"
         />
 
-        {/* Sectors */}
+        {/* Sectors with radial gradients */}
         {sectors.map((sector) => {
           const path = createSectorPath(sector.startAngle, sector.endAngle);
           
@@ -137,66 +155,96 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
                 stroke="white"
                 strokeWidth="3"
                 onClick={() => onSectorClick?.(sector.key)}
-                className="cursor-pointer hover:brightness-110 transition-all duration-200"
-                style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))" }}
+                className="cursor-pointer transition-all duration-200 hover:brightness-105"
+                style={{ 
+                  filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.08))"
+                }}
               />
             </g>
           );
         })}
 
-        {/* Center circle */}
+        {/* Center circle with depth effect */}
         <circle
           cx={center}
           cy={center}
           r={innerRadius}
           fill="white"
-          filter="url(#innerShadow)"
+          filter="url(#centerShadow)"
+        />
+        
+        {/* Inner highlight for center */}
+        <circle
+          cx={center}
+          cy={center}
+          r={innerRadius - 2}
+          fill="white"
+          style={{
+            filter: "drop-shadow(inset 0 2px 4px rgba(0,0,0,0.05))"
+          }}
         />
 
-        {/* Score badges and labels */}
+        {/* Score numbers inside sectors - positioned closer to center */}
         {sectors.map((sector) => {
-          const scorePos = getPosition(sector.midAngle, 75);
-          const labelPos = getPosition(sector.midAngle, 115);
+          const scorePos = getPosition(sector.midAngle, 70);
           const score = scores[sector.key];
           
           return (
-            <g key={`info-${sector.key}`}>
-              {/* Score pill */}
-              <rect
-                x={scorePos.x - 14}
-                y={scorePos.y - 11}
-                width="28"
-                height="22"
-                rx="11"
-                fill="white"
-                opacity="0.95"
-                style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.1))" }}
-              />
+            <g key={`score-${sector.key}`}>
+              {/* Score number */}
               <text
                 x={scorePos.x}
-                y={scorePos.y + 5}
+                y={scorePos.y + 6}
                 textAnchor="middle"
-                fill={sector.color}
-                fontSize="13"
-                fontWeight="700"
-                fontFamily="Inter, system-ui, sans-serif"
+                fill="white"
+                fontSize="20"
+                fontWeight="600"
+                fontFamily="Nunito, system-ui, sans-serif"
+                style={{
+                  textShadow: "0 1px 2px rgba(0,0,0,0.15)"
+                }}
               >
                 {score}
               </text>
-
-              {/* Label */}
-              <text
-                x={labelPos.x}
-                y={labelPos.y + 4}
-                textAnchor="middle"
-                fill="#374151"
-                fontSize="11"
-                fontWeight="600"
-                fontFamily="Inter, system-ui, sans-serif"
-              >
-                {sector.label}
-              </text>
             </g>
+          );
+        })}
+
+        {/* Icons - white, semi-transparent */}
+        {sectors.map((sector) => {
+          const iconPos = getPosition(sector.midAngle, 110);
+          
+          return (
+            <text
+              key={`icon-${sector.key}`}
+              x={iconPos.x}
+              y={iconPos.y + 5}
+              textAnchor="middle"
+              fontSize="18"
+              opacity="0.85"
+            >
+              {sector.icon}
+            </text>
+          );
+        })}
+
+        {/* Labels outside the wheel */}
+        {sectors.map((sector) => {
+          const labelPos = getPosition(sector.midAngle, 138);
+          
+          return (
+            <text
+              key={`label-${sector.key}`}
+              x={labelPos.x}
+              y={labelPos.y + 4}
+              textAnchor="middle"
+              fill="#5B6472"
+              fontSize="11"
+              fontWeight="600"
+              fontFamily="Inter, system-ui, sans-serif"
+            >
+              {sector.label}
+            </text>
           );
         })}
       </svg>

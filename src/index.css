@@ -2,28 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
 @layer base {
   :root {
-    /* Base colors - calm, warm palette */
+    /* Base colors - calm, warm, Apple-like palette */
     --background: 220 20% 97%;
-    --foreground: 230 25% 18%;
+    --foreground: 220 15% 35%;
 
     --card: 0 0% 100%;
-    --card-foreground: 230 25% 18%;
+    --card-foreground: 220 15% 35%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 230 25% 18%;
+    --popover-foreground: 220 15% 35%;
 
     --primary: 230 55% 45%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 92%;
-    --secondary-foreground: 230 25% 25%;
+    --secondary: 220 15% 94%;
+    --secondary-foreground: 220 15% 35%;
 
     --muted: 220 15% 94%;
-    --muted-foreground: 220 10% 50%;
+    --muted-foreground: 220 10% 45%;
 
     --accent: 230 55% 45%;
     --accent-foreground: 0 0% 100%;
@@ -31,39 +29,44 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 88%;
-    --input: 220 15% 90%;
+    --border: 220 15% 90%;
+    --input: 220 15% 92%;
     --ring: 230 55% 45%;
 
     --radius: 1rem;
 
-    /* Balance Wheel Colors */
-    --spirituality: 255 70% 72%;
-    --spirituality-light: 255 75% 88%;
-    --spirituality-dark: 255 60% 55%;
+    /* Balance Wheel Colors - exact from guide */
+    --spirituality: 243 92% 76%;
+    --spirituality-light: 243 95% 86%;
+    --spirituality-dark: 243 85% 65%;
     
-    --relationships: 340 75% 72%;
-    --relationships-light: 340 80% 88%;
-    --relationships-dark: 340 65% 55%;
+    --relationships: 0 100% 77%;
+    --relationships-light: 0 100% 85%;
+    --relationships-dark: 0 90% 65%;
     
-    --health: 145 55% 58%;
+    --health: 145 55% 65%;
     --health-light: 145 60% 82%;
-    --health-dark: 145 50% 42%;
+    --health-dark: 145 50% 50%;
     
-    --finance: 45 75% 60%;
-    --finance-light: 45 80% 82%;
-    --finance-dark: 45 65% 45%;
+    --finance: 42 90% 69%;
+    --finance-light: 42 95% 82%;
+    --finance-dark: 42 80% 55%;
 
-    /* Shadows */
-    --shadow-soft: 0 4px 20px -4px hsl(230 25% 18% / 0.08);
-    --shadow-card: 0 8px 32px -8px hsl(230 25% 18% / 0.12);
-    --shadow-elevated: 0 16px 48px -12px hsl(230 25% 18% / 0.18);
+    /* Text colors from guide */
+    --text-body: 220 15% 40%;
 
-    /* Gradients */
-    --gradient-spirituality: linear-gradient(135deg, hsl(255 75% 75%), hsl(270 65% 68%));
-    --gradient-relationships: linear-gradient(135deg, hsl(340 80% 75%), hsl(355 70% 68%));
-    --gradient-health: linear-gradient(135deg, hsl(145 60% 62%), hsl(160 55% 55%));
-    --gradient-finance: linear-gradient(135deg, hsl(45 80% 65%), hsl(35 75% 55%));
+    /* Shadows - soft, elevated */
+    --shadow-soft: 0 4px 20px -4px hsl(230 25% 18% / 0.06);
+    --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.08);
+    --shadow-elevated: 0 16px 48px -12px hsl(230 25% 18% / 0.15);
+    --shadow-fab: 0 10px 30px rgba(0, 0, 0, 0.15);
+    --shadow-wheel: 0 20px 40px rgba(0, 0, 0, 0.12), inset 0 4px 8px rgba(255, 255, 255, 0.6);
+
+    /* Gradients - radial for wheel sectors */
+    --gradient-spirituality: linear-gradient(135deg, #B9B7FF, #8B8AF8);
+    --gradient-relationships: linear-gradient(135deg, #FFB3B3, #FF8A8A);
+    --gradient-health: linear-gradient(135deg, #B4EBD0, #7ED7A7);
+    --gradient-finance: linear-gradient(135deg, #FFE3A1, #F4C76C);
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -104,10 +107,10 @@
     --input: 230 15% 22%;
     --ring: 230 60% 65%;
 
-    --spirituality: 255 65% 65%;
-    --relationships: 340 70% 65%;
-    --health: 145 50% 52%;
-    --finance: 45 70% 55%;
+    --spirituality: 243 85% 70%;
+    --relationships: 0 90% 70%;
+    --health: 145 50% 55%;
+    --finance: 42 80% 60%;
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -126,12 +129,20 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, sans-serif;
+    color: hsl(var(--text-body));
   }
 
   html {
     scroll-behavior: smooth;
+  }
+
+  /* Headings use Nunito - warm, rounded */
+  h1, h2, h3, h4, h5, h6, .font-display {
+    font-family: 'Nunito', system-ui, sans-serif;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
   }
 }
 
@@ -168,10 +179,18 @@
     box-shadow: var(--shadow-elevated);
   }
 
+  .shadow-fab {
+    box-shadow: var(--shadow-fab);
+  }
+
+  .shadow-wheel {
+    box-shadow: var(--shadow-wheel);
+  }
+
   /* Glass effect */
   .glass {
-    background: hsl(var(--card) / 0.8);
-    backdrop-filter: blur(12px);
+    background: hsl(var(--card) / 0.85);
+    backdrop-filter: blur(16px);
   }
 
   /* Safe area for mobile */
@@ -194,10 +213,10 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.3);
+  background: hsl(var(--muted-foreground) / 0.25);
   border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5);
+  background: hsl(var(--muted-foreground) / 0.4);
 }

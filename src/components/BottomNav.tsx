@@ -10,16 +10,21 @@ interface BottomNavProps {
 
 const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
   const tabs = [
-    { id: "home" as const, icon: Home, label: "Главная" },
-    { id: "balance" as const, icon: PieChart, label: "Баланс" },
-    { id: "chat" as const, icon: MessageCircle, label: "Чат" },
-    { id: "profile" as const, icon: User, label: "Профиль" },
+    { id: "home" as const, icon: Home },
+    { id: "balance" as const, icon: PieChart },
+    { id: "chat" as const, icon: MessageCircle },
+    { id: "profile" as const, icon: User },
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 safe-bottom animate-slide-in-bottom">
       <div className="mx-4 mb-4">
-        <div className="bg-card/95 backdrop-blur-xl rounded-2xl shadow-elevated border border-border/50 px-2 py-2">
+        <div 
+          className="bg-white rounded-2xl px-4 py-3"
+          style={{
+            boxShadow: "0 8px 32px -8px rgba(0, 0, 0, 0.12)"
+          }}
+        >
           <div className="flex items-center justify-around">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
@@ -30,25 +35,19 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
                   key={tab.id}
                   onClick={() => onTabChange(tab.id)}
                   className={cn(
-                    "relative flex flex-col items-center justify-center py-2 px-4 rounded-xl transition-all duration-200",
+                    "relative flex items-center justify-center p-3 rounded-xl transition-all duration-200",
                     isActive 
-                      ? "text-primary bg-primary/10" 
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "text-[#4A5568]" 
+                      : "text-[#A0AEC0] hover:text-[#718096]"
                   )}
                 >
                   <Icon 
                     className={cn(
-                      "w-5 h-5 transition-transform",
-                      isActive && "scale-110"
+                      "w-6 h-6 transition-transform",
+                      isActive && "scale-105"
                     )} 
-                    strokeWidth={isActive ? 2.5 : 2}
+                    strokeWidth={isActive ? 2.5 : 1.8}
                   />
-                  <span className={cn(
-                    "text-[10px] mt-1 font-medium",
-                    isActive && "font-semibold"
-                  )}>
-                    {tab.label}
-                  </span>
                 </button>
               );
             })}
