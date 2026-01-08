@@ -59,7 +59,7 @@ const BalanceScreen = ({ scores, onSectorClick }: BalanceScreenProps) => {
     <div className="min-h-screen bg-background pb-28 safe-top">
       {/* Header */}
       <div className="px-6 py-4 animate-fade-in">
-        <h1 className="text-2xl font-bold text-foreground">Колесо баланса</h1>
+        <h1 className="text-2xl font-display font-bold text-foreground">Колесо баланса</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Твоё текущее состояние жизни
         </p>
@@ -72,7 +72,7 @@ const BalanceScreen = ({ scores, onSectorClick }: BalanceScreenProps) => {
 
       {/* Sector Details */}
       <div className="px-6 mt-4 space-y-3">
-        <h2 className="font-semibold text-foreground">Детали по сферам</h2>
+        <h2 className="font-display font-semibold text-foreground">Детали по сферам</h2>
         
         {sectors.map((sector, index) => {
           const Icon = sector.icon;
@@ -89,7 +89,7 @@ const BalanceScreen = ({ scores, onSectorClick }: BalanceScreenProps) => {
                 <Icon className={`w-6 h-6 ${sector.iconColor}`} />
               </div>
               <div className="flex-1">
-                <p className="font-medium text-foreground">{sector.label}</p>
+                <p className="font-display font-medium text-foreground">{sector.label}</p>
                 <p className="text-xs text-muted-foreground">{sector.description}</p>
               </div>
               <div className="flex items-center gap-2">

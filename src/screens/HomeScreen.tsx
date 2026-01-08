@@ -32,7 +32,7 @@ const HomeScreen = ({ scores, onUpdateScores, onSectorClick }: HomeScreenProps) 
             <div className="flex flex-col items-center justify-center py-12">
               <div className="w-48 h-48 rounded-full bg-gradient-to-br from-spirituality-light via-relationships-light to-health-light opacity-30 animate-pulse" />
               <div className="mt-6 text-center">
-                <p className="text-lg font-medium text-foreground">
+                <p className="text-lg font-display font-semibold text-foreground">
                   Начнём оценку баланса?
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
