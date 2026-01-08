@@ -4,8 +4,10 @@ import HomeScreen from "@/screens/HomeScreen";
 import BalanceScreen from "@/screens/BalanceScreen";
 import ChatScreen from "@/screens/ChatScreen";
 import ProfileScreen from "@/screens/ProfileScreen";
+import ReminderSettingsScreen from "@/screens/ReminderSettingsScreen";
 
 type TabType = "home" | "balance" | "chat" | "profile";
+type SubScreen = "none" | "reminders";
 
 interface BalanceScores {
   spirituality: number;
@@ -16,6 +18,7 @@ interface BalanceScores {
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<TabType>("home");
+  const [subScreen, setSubScreen] = useState<SubScreen>("none");
   const [scores, setScores] = useState<BalanceScores>({
     spirituality: 8,
     relationships: 7,
@@ -38,7 +41,20 @@ const Index = () => {
     setActiveTab("chat");
   };
 
+  const handleOpenReminders = () => {
+    setSubScreen("reminders");
+  };
+
+  const handleBackFromSubScreen = () => {
+    setSubScreen("none");
+  };
+
   const renderScreen = () => {
+    // Handle sub-screens first
+    if (subScreen === "reminders") {
+      return <ReminderSettingsScreen onBack={handleBackFromSubScreen} />;
+    }
+
     switch (activeTab) {
       case "home":
         return (
@@ -63,6 +79,7 @@ const Index = () => {
             userName="Пользователь"
             focusArea="Здоровье"
             onReassessBalance={handleReassessBalance}
+            onOpenReminders={handleOpenReminders}
           />
         );
       default:

@@ -1,12 +1,13 @@
-import { Settings, RefreshCw, Target, TrendingUp, Globe } from "lucide-react";
+import { Settings, RefreshCw, Target, TrendingUp, Globe, Bell } from "lucide-react";
 
 interface ProfileScreenProps {
   userName: string;
   focusArea?: string;
   onReassessBalance: () => void;
+  onOpenReminders: () => void;
 }
 
-const ProfileScreen = ({ userName, focusArea, onReassessBalance }: ProfileScreenProps) => {
+const ProfileScreen = ({ userName, focusArea, onReassessBalance, onOpenReminders }: ProfileScreenProps) => {
   return (
     <div className="min-h-screen bg-background pb-28 safe-top">
       {/* Header */}
@@ -58,6 +59,19 @@ const ProfileScreen = ({ userName, focusArea, onReassessBalance }: ProfileScreen
             <div>
               <p className="font-medium text-foreground">Переоценить баланс</p>
               <p className="text-sm text-muted-foreground">Обновить оценки по всем сферам</p>
+            </div>
+          </button>
+
+          <button 
+            onClick={onOpenReminders}
+            className="w-full flex items-center gap-4 p-4 bg-card rounded-2xl shadow-soft border border-border/50 hover:bg-secondary/30 transition-colors text-left"
+          >
+            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+              <Bell className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-medium text-foreground">Уведомления</p>
+              <p className="text-sm text-muted-foreground">Настроить напоминания от Anil</p>
             </div>
           </button>
 
