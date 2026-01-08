@@ -9,25 +9,35 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-with-an
 
 export async function streamChat({
   messages,
-  telegramId,
   onDelta,
   onDone,
   onError,
 }: {
   messages: Message[];
-  telegramId?: string;
   onDelta: (deltaText: string) => void;
   onDone: () => void;
   onError: (error: string) => void;
 }) {
   try {
+    // Получаем access_token из сессии для безопасной авторизации
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      onError("Пользователь не авторизован");
+      return;
+    }
+
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        "Accept": "text/event-stream",
+        Authorization: `Bearer ${session.access_token}`,
       },
-      body: JSON.stringify({ messages, telegramId }),
+      // telegramId больше не передаём с клиента — берётся на сервере из профиля
+      body: JSON.stringify({ messages }),
     });
 
     if (!resp.ok) {
@@ -77,6 +87,9 @@ export async function streamChat({
         }
       }
     }
+
+    // Финальный flush декодера для UTF-8
+    textBuffer += decoder.decode();
 
     // Final flush
     if (textBuffer.trim()) {
