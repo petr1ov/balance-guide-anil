@@ -37,9 +37,35 @@ export function TelegramAuthProvider({ children }: { children: React.ReactNode }
   }, []);
 
   useEffect(() => {
+    // Initialize Telegram Mini App
+    const tg = (window as unknown as { Telegram?: { WebApp?: { ready: () => void; initData: string; initDataUnsafe?: { user?: TelegramUser } } } }).Telegram?.WebApp;
+    
+    if (tg) {
+      tg.ready();
+      
+      const user = tg.initDataUnsafe?.user;
+      if (user) {
+        setTelegramUser(user);
+        
+        // Store telegram_id for identification without auth
+        localStorage.setItem("telegram_id", String(user.id));
+        
+        // Detect language from Telegram
+        const langCode = user.language_code;
+        const lang = langCode?.startsWith("ru")
+          ? "ru"
+          : langCode?.startsWith("hi")
+          ? "hi"
+          : "en";
+        
+        localStorage.setItem("app_language", lang);
+        setLanguageState(lang);
+      }
+    }
+
     // Restore language from localStorage
     const savedLang = localStorage.getItem("app_language");
-    if (savedLang) {
+    if (savedLang && ["ru", "en", "hi"].includes(savedLang)) {
       setLanguageState(savedLang);
     }
 
@@ -79,27 +105,14 @@ export function TelegramAuthProvider({ children }: { children: React.ReactNode }
         }
 
         // Check if running inside Telegram Mini App
-        const tg = (window as unknown as { Telegram?: { WebApp?: { initData: string; initDataUnsafe?: { user?: TelegramUser } } } }).Telegram?.WebApp;
+        const tgApp = (window as unknown as { Telegram?: { WebApp?: { initData: string; initDataUnsafe?: { user?: TelegramUser } } } }).Telegram?.WebApp;
         
-        if (tg?.initData) {
+        if (tgApp?.initData) {
           console.log("Telegram Mini App detected, authenticating...");
-          
-          // Get Telegram user data for display
-          if (tg.initDataUnsafe?.user) {
-            setTelegramUser(tg.initDataUnsafe.user);
-            
-            // Set language from Telegram if available
-            if (tg.initDataUnsafe.user.language_code) {
-              const lang = tg.initDataUnsafe.user.language_code;
-              if (["ru", "en", "hi"].includes(lang)) {
-                setLanguage(lang);
-              }
-            }
-          }
 
           // Call edge function to validate and get session
           const response = await supabase.functions.invoke("login-with-telegram", {
-            body: { initData: tg.initData },
+            body: { initData: tgApp.initData },
           });
 
           if (response.error) {
