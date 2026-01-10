@@ -182,6 +182,45 @@ export type Database = {
         }
         Relationships: []
       }
+      reminders: {
+        Row: {
+          created_at: string | null
+          day_time: string | null
+          enabled: boolean | null
+          evening_time: string | null
+          id: string
+          morning_time: string | null
+          telegram_id: number | null
+          timezone: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          day_time?: string | null
+          enabled?: boolean | null
+          evening_time?: string | null
+          id?: string
+          morning_time?: string | null
+          telegram_id?: number | null
+          timezone?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          day_time?: string | null
+          enabled?: boolean | null
+          evening_time?: string | null
+          id?: string
+          morning_time?: string | null
+          telegram_id?: number | null
+          timezone?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
