@@ -2,6 +2,26 @@
 
 export type Language = "ru" | "en" | "hi";
 
+// Get saved language from localStorage, default to Russian
+const getSavedLanguage = (): Language => {
+  if (typeof window !== "undefined") {
+    const saved = localStorage.getItem("app_language");
+    if (saved && ["ru", "en", "hi"].includes(saved)) {
+      return saved as Language;
+    }
+  }
+  return "ru";
+};
+
+export let currentLanguage: Language = getSavedLanguage();
+
+export const setCurrentLanguage = (lang: Language) => {
+  currentLanguage = lang;
+  if (typeof window !== "undefined") {
+    localStorage.setItem("app_language", lang);
+  }
+};
+
 export const translations: Record<Language, Record<string, string>> = {
   ru: {
     // Home screen
@@ -31,6 +51,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "reminders.title": "Настройки напоминаний",
     "reminders.daily": "Ежедневное напоминание",
     "reminders.weekly": "Еженедельный обзор",
+    "reminders.saved": "Уведомления сохранены 🌟",
     
     // Common
     "common.save": "Сохранить",
@@ -72,6 +93,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "reminders.title": "Reminder Settings",
     "reminders.daily": "Daily Reminder",
     "reminders.weekly": "Weekly Review",
+    "reminders.saved": "Notifications saved 🌟",
     
     // Common
     "common.save": "Save",
@@ -113,6 +135,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "reminders.title": "अनुस्मारक सेटिंग्स",
     "reminders.daily": "दैनिक अनुस्मारक",
     "reminders.weekly": "साप्ताहिक समीक्षा",
+    "reminders.saved": "सूचनाएं सहेजी गईं 🌟",
     
     // Common
     "common.save": "सहेजें",
@@ -128,13 +151,15 @@ export const translations: Record<Language, Record<string, string>> = {
   },
 };
 
-export function t(key: string, language: Language = "en"): string {
-  return translations[language]?.[key] || translations.en[key] || key;
+export function t(key: string, language?: Language): string {
+  const lang = language || currentLanguage;
+  return translations[lang]?.[key] || translations.en[key] || key;
 }
 
-export function useTranslation(language: Language) {
+export function useTranslation(language?: Language) {
+  const lang = language || currentLanguage;
   return {
-    t: (key: string) => t(key, language),
-    language,
+    t: (key: string) => t(key, lang),
+    language: lang,
   };
 }

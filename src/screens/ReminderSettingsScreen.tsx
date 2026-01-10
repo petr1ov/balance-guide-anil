@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Bell, Clock, ChevronLeft, Sun, Sunrise, Moon, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useTelegramAuth } from "@/contexts/TelegramAuthContext";
+import { t } from "@/lib/i18n";
 
 interface ReminderSettingsScreenProps {
   onBack: () => void;
@@ -28,6 +30,7 @@ const TIME_PRESETS = {
 
 const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenProps) => {
   const { toast } = useToast();
+  const { language } = useTelegramAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [enabled, setEnabled] = useState(true);
@@ -46,26 +49,34 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
+        // Get telegram_id from localStorage as fallback
+        const tgId = telegramId || localStorage.getItem("telegram_id");
+        
+        if (!tgId) {
           setLoading(false);
           return;
         }
 
-        // Use type assertion since types may not be generated yet
-        const { data, error } = await supabase
-          .from("reminders" as any)
-          .select("*")
-          .eq("user_id", session.user.id)
-          .single() as unknown as { data: ReminderSettings | null; error: any };
+        // Try to load from DB via edge function or direct query
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          // If authenticated, use direct query
+          const { data, error } = await supabase
+            .from("reminders" as any)
+            .select("*")
+            .eq("user_id", session.user.id)
+            .single() as unknown as { data: ReminderSettings | null; error: any };
 
-        if (data && !error) {
-          setEnabled(data.enabled ?? true);
-          setTimezone(data.timezone || timezone);
-          setMorningTime(data.morning_time);
-          setDayTime(data.day_time);
-          setEveningTime(data.evening_time);
+          if (data && !error) {
+            setEnabled(data.enabled ?? true);
+            setTimezone(data.timezone || timezone);
+            setMorningTime(data.morning_time);
+            setDayTime(data.day_time);
+            setEveningTime(data.evening_time);
+          }
         }
+        // If not authenticated, we'll use default values
       } catch (err) {
         console.error("Error loading reminder settings:", err);
       } finally {
@@ -74,68 +85,60 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
     };
 
     loadSettings();
-  }, [timezone]);
+  }, [timezone, telegramId]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      // Get telegram_id from prop or localStorage
+      const tgId = telegramId || localStorage.getItem("telegram_id");
+      
+      if (!tgId) {
         toast({
-          title: "Ошибка",
-          description: "Необходимо авторизоваться",
+          title: t("common.error", language as any),
+          description: "Telegram ID не найден. Откройте приложение через Telegram.",
           variant: "destructive",
         });
+        setSaving(false);
         return;
       }
 
-      // Get telegram_id from profile if not provided
-      let tgId = telegramId;
-      if (!tgId) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("telegram_id")
-          .eq("id", session.user.id)
-          .single();
-        tgId = profile?.telegram_id;
+      // Save via edge function (works without auth)
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-reminder`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            telegramId: tgId,
+            timezone,
+            enabled,
+            morningTime,
+            dayTime,
+            eveningTime,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to save");
       }
-
-      if (!tgId) {
-        toast({
-          title: "Ошибка",
-          description: "Telegram ID не найден",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const reminderData = {
-        user_id: session.user.id,
-        telegram_id: tgId,
-        timezone,
-        enabled,
-        morning_time: morningTime,
-        day_time: dayTime,
-        evening_time: eveningTime,
-      };
-
-      // Use type assertion since types may not be generated yet
-      const { error } = await supabase
-        .from("reminders" as any)
-        .upsert(reminderData as any, { onConflict: "user_id" }) as unknown as { error: any };
-
-      if (error) throw error;
 
       toast({
-        title: "Сохранено",
-        description: "Настройки уведомлений обновлены",
+        title: t("common.save", language as any),
+        description: t("reminders.saved", language as any) || "Уведомления сохранены 🌟",
       });
       
       onBack();
     } catch (error) {
       console.error("Error saving reminder settings:", error);
       toast({
-        title: "Ошибка",
+        title: t("common.error", language as any),
         description: "Не удалось сохранить настройки",
         variant: "destructive",
       });
