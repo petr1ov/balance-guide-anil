@@ -134,8 +134,8 @@ async function speechToText(audioUrl: string): Promise<string> {
   formData.append("file", audioBlob, "audio.ogg");
   formData.append("model", "whisper-1");
   
-  // Send to OpenAI Whisper
-  const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+  // Send to OpenAI Whisper via aitunnel
+  const response = await fetch("https://api.aitunnel.ru/v1/audio/transcriptions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${OPENAI_API_KEY}`,
