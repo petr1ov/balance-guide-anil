@@ -1,7 +1,7 @@
-import { Home, PieChart, MessageCircle, User } from "lucide-react";
+import { Home, PieChart, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type TabType = "home" | "balance" | "chat" | "profile";
+type TabType = "home" | "balance" | "profile";
 
 interface BottomNavProps {
   activeTab: TabType;
@@ -12,7 +12,6 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
   const tabs = [
     { id: "home" as const, icon: Home },
     { id: "balance" as const, icon: PieChart },
-    { id: "chat" as const, icon: MessageCircle },
     { id: "profile" as const, icon: User },
   ];
 
