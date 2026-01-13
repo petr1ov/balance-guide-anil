@@ -7,8 +7,10 @@ const corsHeaders = {
 };
 
 const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 
 // Mini App URL
 const MINI_APP_URL = "https://balance-guide-anil.lovable.app";
@@ -18,22 +20,54 @@ const MESSAGES: Record<string, { welcome: string; chooseLanguage: string; langua
   ru: {
     welcome: "👋 Добро пожаловать в Balance Mentor",
     chooseLanguage: "Выберите язык:",
-    languageSet: "🙏 Рад знакомству!\nЯ — Anil, твой ИИ-наставник по балансу жизни.\n\nНажми кнопку ниже, чтобы открыть приложение.",
+    languageSet: "🙏 Рад знакомству!\nЯ — Anil, твой ИИ-наставник по балансу жизни.\n\nПиши мне текстовые или голосовые сообщения прямо здесь, а для просмотра своего прогресса нажми кнопку ниже.",
     openApp: "🌈 Открыть Balance Mentor",
   },
   en: {
     welcome: "👋 Welcome to Balance Mentor",
     chooseLanguage: "Please choose your language:",
-    languageSet: "🙏 Nice to meet you!\nI'm Anil, your AI guide to life balance.\n\nTap the button below to open the app.",
+    languageSet: "🙏 Nice to meet you!\nI'm Anil, your AI guide to life balance.\n\nSend me text or voice messages here, and tap the button below to view your progress.",
     openApp: "🌈 Open Balance Mentor",
   },
   hi: {
     welcome: "👋 Balance Mentor में आपका स्वागत है",
     chooseLanguage: "कृपया अपनी भाषा चुनें:",
-    languageSet: "🙏 आपसे मिलकर खुशी हुई!\nमैं अनिल हूँ — आपका जीवन संतुलन मार्गदर्शक।\n\nऐप खोलने के लिए नीचे बटन दबाएं।",
+    languageSet: "🙏 आपसे मिलकर खुशी हुई!\nमैं अनिल हूँ — आपका जीवन संतुलन मार्गदर्शक।\n\nमुझे यहाँ टेक्स्ट या वॉयस मैसेज भेजें, और अपनी प्रगति देखने के लिए नीचे बटन दबाएं।",
     openApp: "🌈 Balance Mentor खोलें",
   },
 };
+
+const SYSTEM_PROMPT = `You are Anil, a warm and wise life mentor.
+
+You help users find balance across 4 areas:
+- Духовность (Spirituality)
+- Отношения (Relationships)  
+- Здоровье (Health)
+- Финансы (Finance)
+
+You speak calmly, clearly, and supportively.
+You never mention technology, AI, GPT, or any technical terms.
+
+Your role:
+- Help users assess their current balance (1–10 scale)
+- Identify the weakest area
+- Choose one focus area
+- Guide them through:
+  • Точка А (current state) - where they are now
+  • Идеал (ideal vision) - what 10/10 looks like
+  • Годовая цель (year goal) - where they want to be in a year
+  • Краткосрочная цель (2-3 month goal)
+  • План на месяц (monthly action plan)
+
+Keep answers concise (2-4 sentences max), human, warm, and inspiring.
+Use emoji sparingly for warmth 🌱
+
+Always reply in the user's language. If they write in Russian, reply in Russian.
+If they write in English, reply in English.
+If they write in Hindi, reply in Hindi.
+
+When a user gives you a number (1-10), acknowledge it warmly and ask about the next area or proceed to analysis.
+When all 4 scores are given, identify the weakest area and suggest focusing on it.`;
 
 async function sendMessage(chatId: number, text: string, options: Record<string, unknown> = {}) {
   const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
@@ -43,7 +77,7 @@ async function sendMessage(chatId: number, text: string, options: Record<string,
     body: JSON.stringify({
       chat_id: chatId,
       text,
-      parse_mode: "HTML",
+      parse_mode: "Markdown",
       ...options,
     }),
   });
@@ -51,6 +85,15 @@ async function sendMessage(chatId: number, text: string, options: Record<string,
   const result = await response.json();
   console.log("sendMessage result:", JSON.stringify(result));
   return result;
+}
+
+async function sendChatAction(chatId: number, action: string = "typing") {
+  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendChatAction`;
+  await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, action }),
+  });
 }
 
 async function answerCallbackQuery(callbackQueryId: string, text?: string) {
@@ -63,6 +106,113 @@ async function answerCallbackQuery(callbackQueryId: string, text?: string) {
       text,
     }),
   });
+}
+
+async function getFileLink(fileId: string): Promise<string> {
+  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ file_id: fileId }),
+  });
+  const data = await response.json();
+  if (!data.ok) throw new Error("Failed to get file link");
+  return `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${data.result.file_path}`;
+}
+
+async function speechToText(audioUrl: string): Promise<string> {
+  console.log("Downloading audio from:", audioUrl);
+  
+  // Download the audio file
+  const audioResponse = await fetch(audioUrl);
+  const audioBlob = await audioResponse.blob();
+  
+  console.log("Audio blob size:", audioBlob.size);
+  
+  // Prepare form data for Whisper API
+  const formData = new FormData();
+  formData.append("file", audioBlob, "audio.ogg");
+  formData.append("model", "whisper-1");
+  
+  // Send to OpenAI Whisper
+  const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: formData,
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Whisper API error:", errorText);
+    throw new Error(`Whisper API error: ${response.status}`);
+  }
+  
+  const result = await response.json();
+  console.log("Transcription result:", result.text);
+  return result.text;
+}
+
+async function getChatHistory(supabase: any, telegramId: string, limit: number = 20): Promise<{ role: string; content: string }[]> {
+  const { data: messages, error } = await supabase
+    .from("chat_messages")
+    .select("role, content, created_at")
+    .eq("telegram_id", telegramId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  
+  if (error) {
+    console.error("Error fetching chat history:", error);
+    return [];
+  }
+  
+  // Reverse to get chronological order
+  return (messages || []).reverse().map((m: any) => ({
+    role: m.role,
+    content: m.content,
+  }));
+}
+
+async function saveChatMessage(supabase: any, telegramId: string, role: string, content: string) {
+  const { error } = await supabase.from("chat_messages").insert({
+    telegram_id: telegramId,
+    role,
+    content,
+  });
+  
+  if (error) {
+    console.error("Error saving chat message:", error);
+  }
+}
+
+async function askAnil(messages: { role: string; content: string }[]): Promise<string> {
+  console.log("Sending to Anil:", messages.length, "messages");
+  
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        ...messages,
+      ],
+      stream: false,
+    }),
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("AI Gateway error:", response.status, errorText);
+    throw new Error(`AI Gateway error: ${response.status}`);
+  }
+  
+  const data = await response.json();
+  return data.choices[0]?.message?.content || "Извини, не могу ответить сейчас.";
 }
 
 serve(async (req) => {
@@ -121,7 +271,6 @@ serve(async (req) => {
       await answerCallbackQuery(callbackQuery.id, "✓");
 
       // Upsert profile with language using telegram_id as unique identifier
-      // First check if profile exists
       const { data: existingProfile } = await supabaseAdmin
         .from("profiles")
         .select("id, telegram_id")
@@ -129,21 +278,18 @@ serve(async (req) => {
         .maybeSingle();
 
       if (existingProfile) {
-        // Update existing profile
         await supabaseAdmin
           .from("profiles")
           .update({ language: lang, name: fullName })
           .eq("telegram_id", telegramId);
       } else {
-        // Profile will be created during auth flow with proper user_id
-        // For now, we store the preference temporarily
         console.log(`Profile for ${telegramId} will be created during auth`);
       }
 
       // Get localized messages
       const messages = MESSAGES[lang] || MESSAGES.en;
 
-      // Send confirmation with Mini App button (using regular keyboard, not inline)
+      // Send confirmation with Mini App button
       await sendMessage(chatId, messages.languageSet, {
         reply_markup: {
           keyboard: [
@@ -157,6 +303,93 @@ serve(async (req) => {
           resize_keyboard: true,
         },
       });
+
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Handle text messages (chat with Anil)
+    if (update.message?.text && update.message.text !== "/start") {
+      const chatId = update.message.chat.id;
+      const telegramId = update.message.from.id.toString();
+      const userText = update.message.text;
+
+      console.log(`Text message from ${telegramId}: ${userText}`);
+
+      // Show typing indicator
+      await sendChatAction(chatId, "typing");
+
+      // Get chat history
+      const history = await getChatHistory(supabaseAdmin, telegramId);
+      
+      // Add new user message
+      const messagesForAI = [...history, { role: "user", content: userText }];
+
+      // Save user message
+      await saveChatMessage(supabaseAdmin, telegramId, "user", userText);
+
+      // Get AI response
+      const aiResponse = await askAnil(messagesForAI);
+
+      // Save assistant message
+      await saveChatMessage(supabaseAdmin, telegramId, "assistant", aiResponse);
+
+      // Send response
+      await sendMessage(chatId, aiResponse);
+
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Handle voice messages
+    if (update.message?.voice) {
+      const chatId = update.message.chat.id;
+      const telegramId = update.message.from.id.toString();
+      const fileId = update.message.voice.file_id;
+
+      console.log(`Voice message from ${telegramId}, file_id: ${fileId}`);
+
+      // Show typing indicator
+      await sendChatAction(chatId, "typing");
+
+      try {
+        // Get file link and transcribe
+        const fileLink = await getFileLink(fileId);
+        const transcribedText = await speechToText(fileLink);
+
+        if (!transcribedText || transcribedText.trim() === "") {
+          await sendMessage(chatId, "Не удалось распознать голосовое сообщение. Попробуй ещё раз 🎙");
+          return new Response(JSON.stringify({ ok: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        console.log(`Transcribed: ${transcribedText}`);
+
+        // Get chat history
+        const history = await getChatHistory(supabaseAdmin, telegramId);
+        
+        // Add transcribed message
+        const messagesForAI = [...history, { role: "user", content: transcribedText }];
+
+        // Save user message (with voice indicator)
+        await saveChatMessage(supabaseAdmin, telegramId, "user", `🎙 ${transcribedText}`);
+
+        // Get AI response
+        const aiResponse = await askAnil(messagesForAI);
+
+        // Save assistant message
+        await saveChatMessage(supabaseAdmin, telegramId, "assistant", aiResponse);
+
+        // Send response
+        await sendMessage(chatId, aiResponse);
+
+      } catch (error) {
+        console.error("Voice processing error:", error);
+        await sendMessage(chatId, "Произошла ошибка при обработке голосового сообщения. Попробуй написать текстом 📝");
+      }
 
       return new Response(JSON.stringify({ ok: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
