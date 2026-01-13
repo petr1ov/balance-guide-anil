@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import wheelScale from "@/assets/wheel-scale.svg";
 
 interface BalanceScores {
   spirituality: number;
@@ -140,17 +139,6 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
         isVisible ? "opacity-100 scale-100" : "opacity-0 scale-90"
       }`}
     >
-      {/* Background wheel scale image */}
-      <img 
-        src={wheelScale} 
-        alt="" 
-        className={`absolute w-[320px] h-[320px] transition-all duration-1000 ${
-          isVisible ? "opacity-100 rotate-0" : "opacity-0 -rotate-45"
-        }`}
-        style={{ 
-          filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.08))"
-        }}
-      />
       
       <svg
         width={size}
