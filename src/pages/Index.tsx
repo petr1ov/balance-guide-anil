@@ -2,11 +2,10 @@ import { useState } from "react";
 import BottomNav from "@/components/BottomNav";
 import HomeScreen from "@/screens/HomeScreen";
 import BalanceScreen from "@/screens/BalanceScreen";
-import ChatScreen from "@/screens/ChatScreen";
 import ProfileScreen from "@/screens/ProfileScreen";
 import ReminderSettingsScreen from "@/screens/ReminderSettingsScreen";
 
-type TabType = "home" | "balance" | "chat" | "profile";
+type TabType = "home" | "balance" | "profile";
 type SubScreen = "none" | "reminders";
 
 interface BalanceScores {
@@ -28,17 +27,16 @@ const Index = () => {
 
   const handleSectorClick = (sector: keyof BalanceScores) => {
     console.log("Sector clicked:", sector);
-    // Navigate to chat or show details
-    setActiveTab("chat");
+    // Show sector details or open Telegram chat
   };
 
   const handleUpdateScores = () => {
-    // Open assessment flow
-    setActiveTab("chat");
+    // Could show a message to use Telegram chat
+    console.log("To update scores, chat with Anil in Telegram");
   };
 
   const handleReassessBalance = () => {
-    setActiveTab("chat");
+    console.log("To reassess balance, chat with Anil in Telegram");
   };
 
   const handleOpenReminders = () => {
@@ -71,8 +69,6 @@ const Index = () => {
             onSectorClick={handleSectorClick}
           />
         );
-      case "chat":
-        return <ChatScreen />;
       case "profile":
         return (
           <ProfileScreen
