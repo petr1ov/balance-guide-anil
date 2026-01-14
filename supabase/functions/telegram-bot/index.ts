@@ -26,6 +26,15 @@ const SPHERES = [
   { key: "environment", ru: "Окружение и среда", en: "Environment", hi: "वातावरण" },
 ];
 
+// Conversation stages
+const STAGES = {
+  IDLE: "idle",
+  SCORING: "scoring",           // Collecting scores for all spheres
+  POINT_A: "point_a",           // Collecting Point A for current sphere
+  POINT_B: "point_b",           // Collecting Point B for current sphere
+  DAILY: "daily",               // Daily recommendations mode
+};
+
 // Localized messages
 const MESSAGES: Record<string, { welcome: string; chooseLanguage: string; languageSet: string; openApp: string }> = {
   ru: {
@@ -48,7 +57,7 @@ const MESSAGES: Record<string, { welcome: string; chooseLanguage: string; langua
   },
 };
 
-// New comprehensive system prompt for Anil
+// System prompt for Anil with structured data extraction
 const SYSTEM_PROMPT = `Ты — Anil, мудрый, спокойный, поддерживающий ИИ-наставник.
 
 🎯 ТВОЯ МИССИЯ
@@ -202,18 +211,15 @@ async function getFileLink(fileId: string): Promise<string> {
 async function speechToText(audioUrl: string): Promise<string> {
   console.log("Downloading audio from:", audioUrl);
   
-  // Download the audio file
   const audioResponse = await fetch(audioUrl);
   const audioBlob = await audioResponse.blob();
   
   console.log("Audio blob size:", audioBlob.size);
   
-  // Prepare form data for Whisper API
   const formData = new FormData();
   formData.append("file", audioBlob, "audio.ogg");
   formData.append("model", "whisper-1");
   
-  // Send to OpenAI Whisper via aitunnel
   const response = await fetch("https://api.aitunnel.ru/v1/audio/transcriptions", {
     method: "POST",
     headers: {
@@ -266,19 +272,27 @@ async function saveChatMessage(supabase: any, telegramId: string, role: string, 
   }
 }
 
+interface ConversationState {
+  stage: string;
+  current_sphere_index: number;
+  scores?: Record<string, number>;
+  point_a_index?: number;
+  point_b_index?: number;
+}
+
 // deno-lint-ignore no-explicit-any
-async function getConversationState(supabase: any, telegramId: string): Promise<{ stage: string; current_sphere_index: number }> {
+async function getConversationState(supabase: any, telegramId: string): Promise<ConversationState> {
   const { data } = await supabase
     .from("profiles")
     .select("conversation_state")
     .eq("telegram_id", telegramId)
     .maybeSingle();
   
-  return data?.conversation_state || { stage: "idle", current_sphere_index: 0 };
+  return data?.conversation_state || { stage: STAGES.IDLE, current_sphere_index: 0, scores: {} };
 }
 
 // deno-lint-ignore no-explicit-any
-async function updateConversationState(supabase: any, telegramId: string, state: { stage: string; current_sphere_index: number }) {
+async function updateConversationState(supabase: any, telegramId: string, state: ConversationState) {
   await supabase
     .from("profiles")
     .update({ conversation_state: state })
@@ -286,20 +300,187 @@ async function updateConversationState(supabase: any, telegramId: string, state:
 }
 
 // deno-lint-ignore no-explicit-any
-async function getUserLanguage(supabase: any, telegramId: string): Promise<string> {
+async function getUserProfile(supabase: any, telegramId: string): Promise<{ id: string; language: string } | null> {
   const { data } = await supabase
     .from("profiles")
-    .select("language")
+    .select("id, language")
     .eq("telegram_id", telegramId)
     .maybeSingle();
   
-  return data?.language || "ru";
+  return data;
+}
+
+// deno-lint-ignore no-explicit-any
+async function getUserLanguage(supabase: any, telegramId: string): Promise<string> {
+  const profile = await getUserProfile(supabase, telegramId);
+  return profile?.language || "ru";
+}
+
+// Save or update sphere details in database
+// deno-lint-ignore no-explicit-any
+async function saveSphereDetails(
+  supabase: any,
+  userId: string,
+  sphere: string,
+  data: { score?: number; point_a?: string; point_b?: string }
+) {
+  console.log(`Saving sphere details for user ${userId}, sphere: ${sphere}`, data);
+  
+  // Check if record exists
+  const { data: existing } = await supabase
+    .from("sphere_details")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("sphere", sphere)
+    .maybeSingle();
+  
+  if (existing) {
+    // Update existing record
+    const { error } = await supabase
+      .from("sphere_details")
+      .update({
+        ...data,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existing.id);
+    
+    if (error) {
+      console.error("Error updating sphere details:", error);
+    } else {
+      console.log(`Updated sphere_details for ${sphere}`);
+    }
+  } else {
+    // Insert new record
+    const { error } = await supabase
+      .from("sphere_details")
+      .insert({
+        user_id: userId,
+        sphere,
+        ...data,
+      });
+    
+    if (error) {
+      console.error("Error inserting sphere details:", error);
+    } else {
+      console.log(`Inserted sphere_details for ${sphere}`);
+    }
+  }
+}
+
+// Parse score from user message (1-10)
+function parseScore(text: string): number | null {
+  // Remove voice message emoji if present
+  const cleanText = text.replace(/^🎙\s*/, "").trim();
+  
+  // Try to find a number 1-10 in the text
+  const match = cleanText.match(/\b(10|[1-9])\b/);
+  if (match) {
+    return parseInt(match[1], 10);
+  }
+  return null;
+}
+
+// Determine what stage we should be in based on AI response
+function detectStageFromAIResponse(response: string, currentState: ConversationState): ConversationState {
+  const newState = { ...currentState };
+  
+  // Check for scoring questions (asking for 1-10 rating)
+  const scoringPatterns = [
+    /оцени.*от\s*1\s*до\s*10/i,
+    /по шкале.*1.*10/i,
+    /rate.*1.*10/i,
+    /scale.*1.*10/i,
+    /насколько.*доволен.*сфер/i,
+  ];
+  
+  for (const pattern of scoringPatterns) {
+    if (pattern.test(response)) {
+      newState.stage = STAGES.SCORING;
+      return newState;
+    }
+  }
+  
+  // Check for Point A questions
+  const pointAPatterns = [
+    /опиши.*текущ.*ситуаци/i,
+    /что происходит сейчас/i,
+    /describe.*current.*situation/i,
+    /what.*happening.*now/i,
+    /точк.*a/i,
+    /point\s*a/i,
+  ];
+  
+  for (const pattern of pointAPatterns) {
+    if (pattern.test(response)) {
+      newState.stage = STAGES.POINT_A;
+      return newState;
+    }
+  }
+  
+  // Check for Point B questions
+  const pointBPatterns = [
+    /идеальн.*результат/i,
+    /как.*хотел.*было/i,
+    /ideal.*result/i,
+    /how.*would.*like/i,
+    /точк.*b/i,
+    /point\s*b/i,
+    /представь.*идеальн/i,
+  ];
+  
+  for (const pattern of pointBPatterns) {
+    if (pattern.test(response)) {
+      newState.stage = STAGES.POINT_B;
+      return newState;
+    }
+  }
+  
+  // Check for daily recommendations
+  const dailyPatterns = [
+    /сегодняшний фокус/i,
+    /today.*focus/i,
+    /ежедневн.*рекомендац/i,
+    /daily.*recommend/i,
+  ];
+  
+  for (const pattern of dailyPatterns) {
+    if (pattern.test(response)) {
+      newState.stage = STAGES.DAILY;
+      return newState;
+    }
+  }
+  
+  // Check for completion message
+  const completionPatterns = [
+    /теперь я вижу твою картину целиком/i,
+    /now i see your complete picture/i,
+    /спасибо.*картин.*целиком/i,
+  ];
+  
+  for (const pattern of completionPatterns) {
+    if (pattern.test(response)) {
+      newState.stage = STAGES.DAILY;
+      return newState;
+    }
+  }
+  
+  return newState;
+}
+
+// Detect which sphere is being discussed from AI response
+function detectSphereFromResponse(response: string, language: string): string | null {
+  for (const sphere of SPHERES) {
+    const sphereName = sphere[language as keyof typeof sphere] || sphere.ru;
+    if (response.toLowerCase().includes(sphereName.toLowerCase())) {
+      return sphere.key;
+    }
+  }
+  return null;
 }
 
 async function askAnil(messages: { role: string; content: string }[], userLanguage: string): Promise<string> {
   console.log("Sending to Anil:", messages.length, "messages, language:", userLanguage);
   
-  // Add language context to system prompt
   const languageContext = `\n\n🌐 ТЕКУЩИЙ ЯЗЫК ПОЛЬЗОВАТЕЛЯ: ${userLanguage === "ru" ? "Русский" : userLanguage === "hi" ? "Хинди" : "Английский"}. Отвечай ТОЛЬКО на этом языке.`;
   
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -328,6 +509,99 @@ async function askAnil(messages: { role: string; content: string }[], userLangua
   return data.choices[0]?.message?.content || "Извини, не могу ответить сейчас.";
 }
 
+// Process user message and save data based on conversation state
+// deno-lint-ignore no-explicit-any
+async function processUserMessage(
+  supabase: any,
+  telegramId: string,
+  userText: string,
+  currentState: ConversationState,
+  userLanguage: string
+): Promise<void> {
+  const profile = await getUserProfile(supabase, telegramId);
+  if (!profile) {
+    console.log("No profile found for telegram_id:", telegramId);
+    return;
+  }
+  
+  const userId = profile.id;
+  console.log(`Processing message in stage: ${currentState.stage}, sphere index: ${currentState.current_sphere_index}`);
+  
+  // Handle scoring stage
+  if (currentState.stage === STAGES.SCORING) {
+    const score = parseScore(userText);
+    if (score !== null) {
+      const sphereIndex = currentState.current_sphere_index;
+      if (sphereIndex < SPHERES.length) {
+        const sphere = SPHERES[sphereIndex];
+        console.log(`Saving score ${score} for sphere ${sphere.key}`);
+        
+        // Save score to sphere_details
+        await saveSphereDetails(supabase, userId, sphere.key, { score });
+        
+        // Update scores in state
+        const scores = currentState.scores || {};
+        scores[sphere.key] = score;
+        
+        // Move to next sphere
+        currentState.scores = scores;
+        currentState.current_sphere_index = sphereIndex + 1;
+        
+        // If all spheres scored, prepare for Point A
+        if (currentState.current_sphere_index >= SPHERES.length) {
+          currentState.stage = STAGES.POINT_A;
+          currentState.point_a_index = 0;
+        }
+        
+        await updateConversationState(supabase, telegramId, currentState);
+      }
+    }
+  }
+  
+  // Handle Point A stage
+  else if (currentState.stage === STAGES.POINT_A) {
+    const pointAIndex = currentState.point_a_index || 0;
+    if (pointAIndex < SPHERES.length) {
+      const sphere = SPHERES[pointAIndex];
+      console.log(`Saving Point A for sphere ${sphere.key}: ${userText.substring(0, 50)}...`);
+      
+      // Save Point A
+      const cleanText = userText.replace(/^🎙\s*/, "").trim();
+      await saveSphereDetails(supabase, userId, sphere.key, { point_a: cleanText });
+      
+      // Move to Point B for same sphere
+      currentState.stage = STAGES.POINT_B;
+      currentState.point_b_index = pointAIndex;
+      
+      await updateConversationState(supabase, telegramId, currentState);
+    }
+  }
+  
+  // Handle Point B stage
+  else if (currentState.stage === STAGES.POINT_B) {
+    const pointBIndex = currentState.point_b_index || 0;
+    if (pointBIndex < SPHERES.length) {
+      const sphere = SPHERES[pointBIndex];
+      console.log(`Saving Point B for sphere ${sphere.key}: ${userText.substring(0, 50)}...`);
+      
+      // Save Point B
+      const cleanText = userText.replace(/^🎙\s*/, "").trim();
+      await saveSphereDetails(supabase, userId, sphere.key, { point_b: cleanText });
+      
+      // Move to next sphere's Point A, or to daily if done
+      const nextIndex = pointBIndex + 1;
+      if (nextIndex < SPHERES.length) {
+        currentState.stage = STAGES.POINT_A;
+        currentState.point_a_index = nextIndex;
+      } else {
+        currentState.stage = STAGES.DAILY;
+      }
+      
+      await updateConversationState(supabase, telegramId, currentState);
+    }
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -351,7 +625,13 @@ serve(async (req) => {
       console.log(`/start from user ${telegramId} (${fullName})`);
 
       // Reset conversation state
-      await updateConversationState(supabaseAdmin, telegramId, { stage: "idle", current_sphere_index: 0 });
+      await updateConversationState(supabaseAdmin, telegramId, { 
+        stage: STAGES.IDLE, 
+        current_sphere_index: 0,
+        scores: {},
+        point_a_index: 0,
+        point_b_index: 0,
+      });
 
       // Send welcome message with language selection
       const welcomeText = `${MESSAGES.en.welcome}\n\n${MESSAGES.en.chooseLanguage}`;
@@ -383,10 +663,8 @@ serve(async (req) => {
 
       console.log(`Language selected: ${lang} by user ${telegramId}`);
 
-      // Answer callback to remove loading state
       await answerCallbackQuery(callbackQuery.id, "✓");
 
-      // Upsert profile with language using telegram_id as unique identifier
       const { data: existingProfile } = await supabaseAdmin
         .from("profiles")
         .select("id, telegram_id")
@@ -399,17 +677,21 @@ serve(async (req) => {
           .update({ 
             language: lang, 
             name: fullName,
-            conversation_state: { stage: "idle", current_sphere_index: 0 }
+            conversation_state: { 
+              stage: STAGES.SCORING, 
+              current_sphere_index: 0,
+              scores: {},
+              point_a_index: 0,
+              point_b_index: 0,
+            }
           })
           .eq("telegram_id", telegramId);
       } else {
         console.log(`Profile for ${telegramId} will be created during auth`);
       }
 
-      // Get localized messages
       const messages = MESSAGES[lang] || MESSAGES.en;
 
-      // Send confirmation with Mini App button
       await sendMessage(chatId, messages.languageSet, {
         reply_markup: {
           keyboard: [
@@ -437,16 +719,17 @@ serve(async (req) => {
 
       console.log(`Text message from ${telegramId}: ${userText}`);
 
-      // Show typing indicator
       await sendChatAction(chatId, "typing");
 
-      // Get user language
+      // Get current state and language
       const userLanguage = await getUserLanguage(supabaseAdmin, telegramId);
+      const currentState = await getConversationState(supabaseAdmin, telegramId);
+
+      // Process user message and save data based on stage
+      await processUserMessage(supabaseAdmin, telegramId, userText, currentState, userLanguage);
 
       // Get chat history
       const history = await getChatHistory(supabaseAdmin, telegramId);
-      
-      // Add new user message
       const messagesForAI = [...history, { role: "user", content: userText }];
 
       // Save user message
@@ -454,6 +737,14 @@ serve(async (req) => {
 
       // Get AI response
       const aiResponse = await askAnil(messagesForAI, userLanguage);
+
+      // Update state based on AI response
+      const updatedState = await getConversationState(supabaseAdmin, telegramId);
+      const newState = detectStageFromAIResponse(aiResponse, updatedState);
+      if (newState.stage !== updatedState.stage) {
+        console.log(`Stage transition: ${updatedState.stage} -> ${newState.stage}`);
+        await updateConversationState(supabaseAdmin, telegramId, newState);
+      }
 
       // Save assistant message
       await saveChatMessage(supabaseAdmin, telegramId, "assistant", aiResponse);
@@ -474,11 +765,9 @@ serve(async (req) => {
 
       console.log(`Voice message from ${telegramId}, file_id: ${fileId}`);
 
-      // Show typing indicator
       await sendChatAction(chatId, "typing");
 
       try {
-        // Get file link and transcribe
         const fileLink = await getFileLink(fileId);
         const transcribedText = await speechToText(fileLink);
 
@@ -491,13 +780,15 @@ serve(async (req) => {
 
         console.log(`Transcribed: ${transcribedText}`);
 
-        // Get user language
+        // Get current state and language
         const userLanguage = await getUserLanguage(supabaseAdmin, telegramId);
+        const currentState = await getConversationState(supabaseAdmin, telegramId);
+
+        // Process transcribed message and save data based on stage
+        await processUserMessage(supabaseAdmin, telegramId, transcribedText, currentState, userLanguage);
 
         // Get chat history
         const history = await getChatHistory(supabaseAdmin, telegramId);
-        
-        // Add transcribed message
         const messagesForAI = [...history, { role: "user", content: transcribedText }];
 
         // Save user message (with voice indicator)
@@ -505,6 +796,14 @@ serve(async (req) => {
 
         // Get AI response
         const aiResponse = await askAnil(messagesForAI, userLanguage);
+
+        // Update state based on AI response
+        const updatedState = await getConversationState(supabaseAdmin, telegramId);
+        const newState = detectStageFromAIResponse(aiResponse, updatedState);
+        if (newState.stage !== updatedState.stage) {
+          console.log(`Stage transition: ${updatedState.stage} -> ${newState.stage}`);
+          await updateConversationState(supabaseAdmin, telegramId, newState);
+        }
 
         // Save assistant message
         await saveChatMessage(supabaseAdmin, telegramId, "assistant", aiResponse);
