@@ -16,29 +16,38 @@ export type Database = {
     Tables: {
       balance_scores: {
         Row: {
+          career: number | null
           created_at: string
+          environment: number | null
           finance: number | null
           health: number | null
           id: string
           relationships: number | null
+          rest: number | null
           spirituality: number | null
           user_id: string
         }
         Insert: {
+          career?: number | null
           created_at?: string
+          environment?: number | null
           finance?: number | null
           health?: number | null
           id?: string
           relationships?: number | null
+          rest?: number | null
           spirituality?: number | null
           user_id: string
         }
         Update: {
+          career?: number | null
           created_at?: string
+          environment?: number | null
           finance?: number | null
           health?: number | null
           id?: string
           relationships?: number | null
+          rest?: number | null
           spirituality?: number | null
           user_id?: string
         }
@@ -136,6 +145,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          conversation_state: Json | null
           created_at: string
           id: string
           language: string | null
@@ -144,6 +154,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          conversation_state?: Json | null
           created_at?: string
           id?: string
           language?: string | null
@@ -152,6 +163,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          conversation_state?: Json | null
           created_at?: string
           id?: string
           language?: string | null
@@ -223,6 +235,50 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      sphere_details: {
+        Row: {
+          created_at: string
+          daily_plan: string[] | null
+          id: string
+          point_a: string | null
+          point_b: string | null
+          score: number | null
+          sphere: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_plan?: string[] | null
+          id?: string
+          point_a?: string | null
+          point_b?: string | null
+          score?: number | null
+          sphere: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_plan?: string[] | null
+          id?: string
+          point_a?: string | null
+          point_b?: string | null
+          score?: number | null
+          sphere?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sphere_details_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

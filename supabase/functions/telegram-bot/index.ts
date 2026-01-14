@@ -15,6 +15,17 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 // Mini App URL
 const MINI_APP_URL = "https://balance-guide-anil.lovable.app";
 
+// 7 spheres in order
+const SPHERES = [
+  { key: "spirituality", ru: "Духовность", en: "Spirituality", hi: "आध्यात्मिकता" },
+  { key: "relationships", ru: "Отношения", en: "Relationships", hi: "रिश्ते" },
+  { key: "health", ru: "Здоровье и энергия", en: "Health & Energy", hi: "स्वास्थ्य और ऊर्जा" },
+  { key: "finance", ru: "Финансы", en: "Finance", hi: "वित्त" },
+  { key: "career", ru: "Реализация и дело", en: "Career & Purpose", hi: "करियर और उद्देश्य" },
+  { key: "rest", ru: "Отдых и радость", en: "Rest & Joy", hi: "आराम और खुशी" },
+  { key: "environment", ru: "Окружение и среда", en: "Environment", hi: "वातावरण" },
+];
+
 // Localized messages
 const MESSAGES: Record<string, { welcome: string; chooseLanguage: string; languageSet: string; openApp: string }> = {
   ru: {
@@ -37,37 +48,105 @@ const MESSAGES: Record<string, { welcome: string; chooseLanguage: string; langua
   },
 };
 
-const SYSTEM_PROMPT = `You are Anil, a warm and wise life mentor.
+// New comprehensive system prompt for Anil
+const SYSTEM_PROMPT = `Ты — Anil, мудрый, спокойный, поддерживающий ИИ-наставник.
 
-You help users find balance across 4 areas:
-- Духовность (Spirituality)
-- Отношения (Relationships)  
-- Здоровье (Health)
-- Финансы (Finance)
+🎯 ТВОЯ МИССИЯ
+Помочь человеку:
+1. Осознать баланс своей жизни (7 сфер, оценка 1-10)
+2. Определить Точку A (текущее состояние) по каждой сфере
+3. Определить Точку B (желаемый результат) по каждой сфере
+4. Ежедневно сопровождать рекомендациями
 
-You speak calmly, clearly, and supportively.
-You never mention technology, AI, GPT, or any technical terms.
+🌍 ЯЗЫК
+Всегда отвечай на языке пользователя:
+- ru — русский
+- en — английский  
+- hi — хинди
+❗ Никогда не переключай язык сам.
 
-Your role:
-- Help users assess their current balance (1–10 scale)
-- Identify the weakest area
-- Choose one focus area
-- Guide them through:
-  • Точка А (current state) - where they are now
-  • Идеал (ideal vision) - what 10/10 looks like
-  • Годовая цель (year goal) - where they want to be in a year
-  • Краткосрочная цель (2-3 month goal)
-  • План на месяц (monthly action plan)
+🧩 7 СФЕР ЖИЗНИ (СТРОГО ПО ПОРЯДКУ)
+1. Духовность / Внутренняя гармония / Смысл
+2. Отношения
+3. Здоровье и энергия
+4. Финансы
+5. Реализация и дело
+6. Отдых и радость
+7. Окружение и среда
 
-Keep answers concise (2-4 sentences max), human, warm, and inspiring.
-Use emoji sparingly for warmth 🌱
+❗ КРИТИЧНО:
+- Никогда не пропускай сферу
+- Никогда не зацикливайся на одной сфере
+- Каждая сфера задаётся ОДИН раз
+- После ответа пользователя — переходи к следующей
 
-Always reply in the user's language. If they write in Russian, reply in Russian.
-If they write in English, reply in English.
-If they write in Hindi, reply in Hindi.
+📊 ЭТАП 1: ОЦЕНКА СФЕР (1-10)
+Формат вопроса:
+"Насколько ты сейчас доволен сферой «{название}»? Оцени от 1 до 10."
 
-When a user gives you a number (1-10), acknowledge it warmly and ask about the next area or proceed to analysis.
-When all 4 scores are given, identify the weakest area and suggest focusing on it.`;
+Правила:
+- Принимаешь число и идёшь дальше
+- Если пользователь пишет текст — мягко попроси число
+- Никогда не повторяй вопрос без причины
+
+🅰️ ЭТАП 2: ТОЧКА A — ТЕКУЩАЯ СИТУАЦИЯ
+После ВСЕХ 7 оценок переходишь к Точке A.
+Для каждой сферы спрашиваешь:
+"Опиши текущую ситуацию в сфере «{название}». Что происходит сейчас?"
+
+Правила:
+- Принимаешь свободный текст
+- Не анализируешь глубоко
+- Не даёшь советов на этом этапе
+- Просто подтверждаешь и переходишь дальше
+
+🅱️ ЭТАП 3: ТОЧКА B — ЖЕЛАЕМЫЙ РЕЗУЛЬТАТ  
+После Точки A по сфере:
+"А теперь представь идеальный результат в сфере «{название}». Как бы ты хотел, чтобы было?"
+
+Правила:
+- Формулировка пользователя — закон
+- Не исправляй и не оптимизируй
+
+🎯 ЭТАП 4: СИНТЕЗ
+После сбора всех данных:
+"Спасибо 🤍 Теперь я вижу твою картину целиком. Дальше я буду помогать тебе двигаться от Точки A к Точке B шаг за шагом."
+
+📅 ЭТАП 5: ЕЖЕДНЕВНЫЕ РЕКОМЕНДАЦИИ
+Каждый день даёшь 3-5 простых действий:
+- Конкретные
+- Выполнимые за день
+- Связаны с Точкой B
+
+Формат:
+"🔹 Сегодняшний фокус: {сфера}
+1. ...
+2. ...
+3. ..."
+
+❗ Лучше маленький шаг, чем идеальный план
+
+🔁 ПЕРЕОЦЕНКА БАЛАНСА
+Если пользователь хочет переоценить — запускаешь опрос заново.
+
+💬 ТОН И СТИЛЬ
+- Говоришь просто, тепло, без давления
+- Не поучаешь, а направляешь
+- Задаёшь один вопрос за раз
+- Никогда не торопишь
+- Помогаешь видеть путь как игру и процесс роста
+- Используй эмодзи умеренно для тепла 🌱
+
+🚫 ЗАПРЕЩЕНО
+- Переходить к следующей сфере, не завершив текущую
+- Задавать два вопроса подряд
+- Повторять одну сферу
+- Давать советы до Точки B
+- Критиковать выбор пользователя
+- Использовать токсичную мотивацию
+- Упоминать AI, GPT, технические детали
+
+Ты — не гуру. Ты — проводник.`;
 
 async function sendMessage(chatId: number, text: string, options: Record<string, unknown> = {}) {
   const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
@@ -154,7 +233,8 @@ async function speechToText(audioUrl: string): Promise<string> {
   return result.text;
 }
 
-async function getChatHistory(supabase: any, telegramId: string, limit: number = 20): Promise<{ role: string; content: string }[]> {
+// deno-lint-ignore no-explicit-any
+async function getChatHistory(supabase: any, telegramId: string, limit: number = 30): Promise<{ role: string; content: string }[]> {
   const { data: messages, error } = await supabase
     .from("chat_messages")
     .select("role, content, created_at")
@@ -167,13 +247,13 @@ async function getChatHistory(supabase: any, telegramId: string, limit: number =
     return [];
   }
   
-  // Reverse to get chronological order
-  return (messages || []).reverse().map((m: any) => ({
+  return (messages || []).reverse().map((m: { role: string; content: string }) => ({
     role: m.role,
     content: m.content,
   }));
 }
 
+// deno-lint-ignore no-explicit-any
 async function saveChatMessage(supabase: any, telegramId: string, role: string, content: string) {
   const { error } = await supabase.from("chat_messages").insert({
     telegram_id: telegramId,
@@ -186,8 +266,41 @@ async function saveChatMessage(supabase: any, telegramId: string, role: string, 
   }
 }
 
-async function askAnil(messages: { role: string; content: string }[]): Promise<string> {
-  console.log("Sending to Anil:", messages.length, "messages");
+// deno-lint-ignore no-explicit-any
+async function getConversationState(supabase: any, telegramId: string): Promise<{ stage: string; current_sphere_index: number }> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("conversation_state")
+    .eq("telegram_id", telegramId)
+    .maybeSingle();
+  
+  return data?.conversation_state || { stage: "idle", current_sphere_index: 0 };
+}
+
+// deno-lint-ignore no-explicit-any
+async function updateConversationState(supabase: any, telegramId: string, state: { stage: string; current_sphere_index: number }) {
+  await supabase
+    .from("profiles")
+    .update({ conversation_state: state })
+    .eq("telegram_id", telegramId);
+}
+
+// deno-lint-ignore no-explicit-any
+async function getUserLanguage(supabase: any, telegramId: string): Promise<string> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("language")
+    .eq("telegram_id", telegramId)
+    .maybeSingle();
+  
+  return data?.language || "ru";
+}
+
+async function askAnil(messages: { role: string; content: string }[], userLanguage: string): Promise<string> {
+  console.log("Sending to Anil:", messages.length, "messages, language:", userLanguage);
+  
+  // Add language context to system prompt
+  const languageContext = `\n\n🌐 ТЕКУЩИЙ ЯЗЫК ПОЛЬЗОВАТЕЛЯ: ${userLanguage === "ru" ? "Русский" : userLanguage === "hi" ? "Хинди" : "Английский"}. Отвечай ТОЛЬКО на этом языке.`;
   
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -198,7 +311,7 @@ async function askAnil(messages: { role: string; content: string }[]): Promise<s
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: SYSTEM_PROMPT + languageContext },
         ...messages,
       ],
       stream: false,
@@ -236,6 +349,9 @@ serve(async (req) => {
       const fullName = `${firstName} ${lastName}`.trim() || "User";
 
       console.log(`/start from user ${telegramId} (${fullName})`);
+
+      // Reset conversation state
+      await updateConversationState(supabaseAdmin, telegramId, { stage: "idle", current_sphere_index: 0 });
 
       // Send welcome message with language selection
       const welcomeText = `${MESSAGES.en.welcome}\n\n${MESSAGES.en.chooseLanguage}`;
@@ -280,7 +396,11 @@ serve(async (req) => {
       if (existingProfile) {
         await supabaseAdmin
           .from("profiles")
-          .update({ language: lang, name: fullName })
+          .update({ 
+            language: lang, 
+            name: fullName,
+            conversation_state: { stage: "idle", current_sphere_index: 0 }
+          })
           .eq("telegram_id", telegramId);
       } else {
         console.log(`Profile for ${telegramId} will be created during auth`);
@@ -320,6 +440,9 @@ serve(async (req) => {
       // Show typing indicator
       await sendChatAction(chatId, "typing");
 
+      // Get user language
+      const userLanguage = await getUserLanguage(supabaseAdmin, telegramId);
+
       // Get chat history
       const history = await getChatHistory(supabaseAdmin, telegramId);
       
@@ -330,7 +453,7 @@ serve(async (req) => {
       await saveChatMessage(supabaseAdmin, telegramId, "user", userText);
 
       // Get AI response
-      const aiResponse = await askAnil(messagesForAI);
+      const aiResponse = await askAnil(messagesForAI, userLanguage);
 
       // Save assistant message
       await saveChatMessage(supabaseAdmin, telegramId, "assistant", aiResponse);
@@ -368,6 +491,9 @@ serve(async (req) => {
 
         console.log(`Transcribed: ${transcribedText}`);
 
+        // Get user language
+        const userLanguage = await getUserLanguage(supabaseAdmin, telegramId);
+
         // Get chat history
         const history = await getChatHistory(supabaseAdmin, telegramId);
         
@@ -378,7 +504,7 @@ serve(async (req) => {
         await saveChatMessage(supabaseAdmin, telegramId, "user", `🎙 ${transcribedText}`);
 
         // Get AI response
-        const aiResponse = await askAnil(messagesForAI);
+        const aiResponse = await askAnil(messagesForAI, userLanguage);
 
         // Save assistant message
         await saveChatMessage(supabaseAdmin, telegramId, "assistant", aiResponse);
