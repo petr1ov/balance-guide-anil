@@ -90,20 +90,21 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Get telegram_id from prop or localStorage
-      const tgId = telegramId || localStorage.getItem("telegram_id");
+      // SECURITY: Use Telegram initData for signature verification (not telegram_id from body)
+      const tg = (window as any).Telegram?.WebApp;
+      const initData = tg?.initData;
       
-      if (!tgId) {
+      if (!initData) {
         toast({
           title: t("common.error", language as any),
-          description: "Telegram ID не найден. Откройте приложение через Telegram.",
+          description: "Telegram данные не найдены. Откройте приложение через Telegram.",
           variant: "destructive",
         });
         setSaving(false);
         return;
       }
 
-      // Save via edge function (works without auth)
+      // Save via edge function with signed initData
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-reminder`,
         {
@@ -113,7 +114,7 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({
-            telegramId: tgId,
+            initData, // Pass signed Telegram data instead of raw telegram_id
             timezone,
             enabled,
             morningTime,

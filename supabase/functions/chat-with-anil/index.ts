@@ -6,6 +6,46 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Rate limit configuration
+const RATE_LIMIT_WINDOW_MS = 3000; // 3 seconds between requests
+const MAX_MESSAGES_PER_REQUEST = 30;
+const MAX_MESSAGE_LENGTH = 1000;
+
+// In-memory rate limit store (per user)
+const rateLimitStore = new Map<string, number>();
+
+// Validate a single message
+function validateMessage(content: unknown): boolean {
+  if (!content || typeof content !== "string") return false;
+  if (content.trim().length === 0) return false;
+  if (content.length > MAX_MESSAGE_LENGTH) return false;
+  return true;
+}
+
+// Check rate limit for user
+function checkRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const lastRequest = rateLimitStore.get(userId);
+  
+  if (lastRequest && now - lastRequest < RATE_LIMIT_WINDOW_MS) {
+    return false; // Rate limited
+  }
+  
+  rateLimitStore.set(userId, now);
+  
+  // Clean up old entries periodically
+  if (rateLimitStore.size > 1000) {
+    const cutoff = now - RATE_LIMIT_WINDOW_MS * 10;
+    for (const [key, time] of rateLimitStore.entries()) {
+      if (time < cutoff) {
+        rateLimitStore.delete(key);
+      }
+    }
+  }
+  
+  return true;
+}
+
 // Comprehensive system prompt for Anil (same as telegram-bot)
 const SYSTEM_PROMPT = `Ты — Anil, мудрый, спокойный, поддерживающий ИИ-наставник.
 
@@ -142,10 +182,47 @@ serve(async (req) => {
       );
     }
 
-    const userId = claimsData.claims.sub;
+    const userId = claimsData.claims.sub as string;
     console.log("Authenticated user:", userId);
 
+    // Rate limit check
+    if (!checkRateLimit(userId)) {
+      console.log("Rate limit exceeded for user:", userId);
+      return new Response(
+        JSON.stringify({ error: "Слишком много запросов. Подождите несколько секунд." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { messages, language } = await req.json();
+
+    // Validate messages array
+    if (!Array.isArray(messages)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid messages format" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check message count limit
+    if (messages.length > MAX_MESSAGES_PER_REQUEST) {
+      console.log("Too many messages:", messages.length);
+      return new Response(
+        JSON.stringify({ error: "Слишком много сообщений в запросе" }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate last message content
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || !validateMessage(lastMessage.content)) {
+      console.log("Invalid message content:", lastMessage?.content?.substring(0, 100));
+      return new Response(
+        JSON.stringify({ error: "Некорректное сообщение" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
