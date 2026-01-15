@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
-import { BalanceScores, DEFAULT_SCORES } from "@/types/balance";
+import { BalanceScores, DEFAULT_SCORES, SphereKey } from "@/types/balance";
 
 interface BalanceWheelProps {
   scores: BalanceScores;
   onSectorClick?: (sector: keyof BalanceScores) => void;
+  highlightedSpheres?: SphereKey[];
+  isJyotishMode?: boolean;
 }
 
-const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
+const BalanceWheel = ({ scores, onSectorClick, highlightedSpheres = [], isJyotishMode = false }: BalanceWheelProps) => {
   const [animatedScores, setAnimatedScores] = useState<BalanceScores>(DEFAULT_SCORES);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -162,12 +164,23 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
           <filter id="centerShadow" x="-50%" y="-50%" width="200%" height="200%">
             <feDropShadow dx="0" dy="2" stdDeviation="4" floodOpacity="0.12"/>
           </filter>
+
+          {/* Jyotish glow filter for highlighted spheres */}
+          <filter id="jyotishGlow" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
 
         {/* Filled sectors based on scores */}
         {sectors.map((sector, index) => {
           const score = animatedScores[sector.key];
           const path = createFilledSectorPath(sector.startAngle, score);
+          const isHighlighted = isJyotishMode && highlightedSpheres.includes(sector.key);
           
           if (!path) return null;
           
@@ -182,12 +195,16 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
               <path
                 d={path}
                 fill={`url(#grad-${sector.key})`}
-                stroke="white"
-                strokeWidth="2"
+                stroke={isHighlighted ? "#FFD700" : "white"}
+                strokeWidth={isHighlighted ? 3 : 2}
                 onClick={() => onSectorClick?.(sector.key)}
-                className="cursor-pointer transition-all duration-200 hover:brightness-110 hover:scale-[1.02]"
+                className={`cursor-pointer transition-all duration-200 hover:brightness-110 hover:scale-[1.02] ${
+                  isHighlighted ? "animate-pulse" : ""
+                }`}
                 style={{ 
-                  filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.15))",
+                  filter: isHighlighted 
+                    ? "drop-shadow(0 0 12px rgba(255, 215, 0, 0.6)) drop-shadow(0 4px 8px rgba(0,0,0,0.15))"
+                    : "drop-shadow(0 4px 8px rgba(0,0,0,0.15))",
                   transformOrigin: "center",
                 }}
               />
@@ -251,21 +268,38 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
         {/* Icons */}
         {sectors.map((sector, index) => {
           const iconPos = getPosition(sector.midAngle, 115);
+          const isHighlighted = isJyotishMode && highlightedSpheres.includes(sector.key);
           
           return (
-            <text
-              key={`icon-${sector.key}`}
-              x={iconPos.x}
-              y={iconPos.y + 5}
-              textAnchor="middle"
-              fontSize="20"
-              style={{
-                opacity: isVisible ? 1 : 0,
-                transition: `opacity 0.5s ease-out ${0.7 + index * 0.1}s`,
-              }}
-            >
-              {sector.icon}
-            </text>
+            <g key={`icon-${sector.key}`}>
+              <text
+                x={iconPos.x}
+                y={iconPos.y + 5}
+                textAnchor="middle"
+                fontSize="20"
+                style={{
+                  opacity: isVisible ? 1 : 0,
+                  transition: `opacity 0.5s ease-out ${0.7 + index * 0.1}s`,
+                }}
+              >
+                {sector.icon}
+              </text>
+              {/* Jyotish indicator */}
+              {isHighlighted && (
+                <text
+                  x={iconPos.x + 12}
+                  y={iconPos.y - 8}
+                  textAnchor="middle"
+                  fontSize="12"
+                  style={{
+                    opacity: isVisible ? 1 : 0,
+                    transition: `opacity 0.5s ease-out ${0.7 + index * 0.1}s`,
+                  }}
+                >
+                  🔮
+                </text>
+              )}
+            </g>
           );
         })}
 

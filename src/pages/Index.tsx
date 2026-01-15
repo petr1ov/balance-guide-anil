@@ -22,6 +22,7 @@ interface SphereDetail {
   pointA?: string;
   pointB?: string;
   dailyPlan?: string[];
+  jyotishAccent?: string;
 }
 
 const Index = () => {
@@ -30,6 +31,7 @@ const Index = () => {
   const [subScreen, setSubScreen] = useState<SubScreen>("none");
   const [selectedSphere, setSelectedSphere] = useState<string | null>(null);
   const [sphereDetails, setSphereDetails] = useState<Record<string, SphereDetail>>({});
+  const [highlightedSpheres, setHighlightedSpheres] = useState<SphereKey[]>([]);
   const [focusArea, setFocusArea] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>(telegramUser?.first_name || "Пользователь");
   const [userMode, setUserMode] = useState<"fast" | "jyotish">("fast");
@@ -102,16 +104,26 @@ const Index = () => {
 
         if (sphereData && sphereData.length > 0) {
           const details: Record<string, SphereDetail> = {};
-          sphereData.forEach((s: { sphere: string; score: number | null; point_a: string | null; point_b: string | null; daily_plan: string[] | null }) => {
+          const highlighted: SphereKey[] = [];
+          
+          sphereData.forEach((s: { sphere: string; score: number | null; point_a: string | null; point_b: string | null; daily_plan: string[] | null; jyotish_accent: string | null }) => {
             details[s.sphere] = {
               sphere: s.sphere,
               score: s.score ?? 0,
               pointA: s.point_a ?? undefined,
               pointB: s.point_b ?? undefined,
               dailyPlan: s.daily_plan ?? undefined,
+              jyotishAccent: s.jyotish_accent ?? undefined,
             };
+            
+            // If there's a jyotish accent, this sphere is highlighted
+            if (s.jyotish_accent && ["spirituality", "relationships", "health", "finance"].includes(s.sphere)) {
+              highlighted.push(s.sphere as SphereKey);
+            }
           });
+          
           setSphereDetails(details);
+          setHighlightedSpheres(highlighted);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -221,6 +233,8 @@ const Index = () => {
             scores={scores}
             language={language as Language}
             onSectorClick={handleSectorClick}
+            highlightedSpheres={highlightedSpheres}
+            isJyotishMode={userMode === "jyotish"}
           />
         );
       case "profile":
