@@ -107,6 +107,9 @@ export const translations: Record<Language, Record<string, string>> = {
     "auth.loading": "Авторизация...",
     "auth.error": "Ошибка авторизации",
     "auth.openInTelegram": "Откройте в Telegram",
+    "auth.openInTelegramTitle": "Откройте через Telegram",
+    "auth.openInTelegramDescription": "Это приложение работает только внутри Telegram. Пожалуйста, откройте его через бота.",
+    "auth.openBot": "Открыть бота",
   },
   en: {
     // Home screen
@@ -174,6 +177,9 @@ export const translations: Record<Language, Record<string, string>> = {
     "auth.loading": "Authenticating...",
     "auth.error": "Authentication error",
     "auth.openInTelegram": "Open in Telegram",
+    "auth.openInTelegramTitle": "Open via Telegram",
+    "auth.openInTelegramDescription": "This app only works inside Telegram. Please open it through the bot.",
+    "auth.openBot": "Open Bot",
   },
   hi: {
     // Home screen
@@ -241,6 +247,9 @@ export const translations: Record<Language, Record<string, string>> = {
     "auth.loading": "प्रमाणीकरण...",
     "auth.error": "प्रमाणीकरण त्रुटि",
     "auth.openInTelegram": "टेलीग्राम में खोलें",
+    "auth.openInTelegramTitle": "टेलीग्राम से खोलें",
+    "auth.openInTelegramDescription": "यह ऐप केवल टेलीग्राम के अंदर काम करता है। कृपया इसे बॉट के माध्यम से खोलें।",
+    "auth.openBot": "बॉट खोलें",
   },
 };
 
