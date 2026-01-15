@@ -26,39 +26,86 @@ const SPHERES = [
   { key: "environment", ru: "Окружение и среда", en: "Environment", hi: "वातावरण" },
 ];
 
-// Conversation stages
+// Conversation stages (FSM)
 const STAGES = {
   IDLE: "idle",
-  SCORING: "scoring",           // Collecting scores for all spheres
-  POINT_A: "point_a",           // Collecting Point A for current sphere
-  POINT_B: "point_b",           // Collecting Point B for current sphere
-  DAILY: "daily",               // Daily recommendations mode
+  SELECT_MODE: "select_mode",       // Choosing fast or jyotish mode
+  BIRTH_DATE: "birth_date",         // Jyotish: collecting date
+  BIRTH_TIME: "birth_time",         // Jyotish: collecting time
+  BIRTH_COUNTRY: "birth_country",   // Jyotish: collecting country
+  BIRTH_CITY: "birth_city",         // Jyotish: collecting city
+  SCORING: "scoring",               // Collecting scores for all spheres
+  POINT_A: "point_a",               // Collecting Point A for current sphere
+  POINT_B: "point_b",               // Collecting Point B for current sphere
+  DAILY: "daily",                   // Daily recommendations mode
 };
 
 // Localized messages
-const MESSAGES: Record<string, { welcome: string; chooseLanguage: string; languageSet: string; openApp: string }> = {
+const MESSAGES: Record<string, { 
+  welcome: string; 
+  chooseLanguage: string; 
+  languageSet: string; 
+  openApp: string;
+  modeSelection: string;
+  fastModeSelected: string;
+  jyotishModeSelected: string;
+  askBirthDate: string;
+  askBirthTime: string;
+  askBirthCountry: string;
+  askBirthCity: string;
+  birthDataComplete: string;
+  invalidDate: string;
+}> = {
   ru: {
     welcome: "👋 Добро пожаловать в Balance Mentor",
     chooseLanguage: "Выберите язык:",
     languageSet: "🙏 Рад знакомству!\nЯ — Anil, твой ИИ-наставник по балансу жизни.\n\nПиши мне текстовые или голосовые сообщения прямо здесь, а для просмотра своего прогресса нажми кнопку ниже.",
     openApp: "🌈 Открыть Balance Mentor",
+    modeSelection: "Как мы пойдём дальше?\n\n🎯 *Быстрый старт* — без астрологии, сразу к делу\n🔮 *С Джйотиш* — глубокий анализ по натальной карте\n\nНапиши *1* или *2*",
+    fastModeSelected: "🎯 Отлично! Начнём с оценки сфер жизни.\n\nНасколько ты сейчас доволен сферой «Духовность»? Оцени от 1 до 10.",
+    jyotishModeSelected: "🔮 Прекрасный выбор! Астрологический анализ добавит глубины рекомендациям.\n\nДля построения натальной карты мне нужны данные о рождении.",
+    askBirthDate: "📅 *Шаг 1 из 4*\nНапиши дату рождения в формате:\n*ДД.ММ.ГГГГ*",
+    askBirthTime: "⏰ *Шаг 2 из 4*\nЕсли знаешь точное время — напиши его (ЧЧ:ММ).\n\nЕсли нет — выбери вариант:\n*утро / день / вечер / ночь*",
+    askBirthCountry: "🌍 *Шаг 3 из 4*\nВ какой стране ты родился(лась)?",
+    askBirthCity: "🏙️ *Шаг 4 из 4*\nНапиши город рождения\n(или ближайший крупный город)",
+    birthDataComplete: "Благодарю 🙏\nЯ сделаю разбор твоей натальной карты и использую его,\nчтобы рекомендации были *глубже и точнее*.\n\nА теперь начнём оценку сфер жизни.\n\nНасколько ты сейчас доволен сферой «Духовность»? Оцени от 1 до 10.",
+    invalidDate: "Пожалуйста, введи дату в формате *ДД.ММ.ГГГГ*, например: 15.03.1990",
   },
   en: {
     welcome: "👋 Welcome to Balance Mentor",
     chooseLanguage: "Please choose your language:",
     languageSet: "🙏 Nice to meet you!\nI'm Anil, your AI guide to life balance.\n\nSend me text or voice messages here, and tap the button below to view your progress.",
     openApp: "🌈 Open Balance Mentor",
+    modeSelection: "How shall we proceed?\n\n🎯 *Quick Start* — no astrology, straight to the point\n🔮 *With Jyotish* — deep analysis based on your birth chart\n\nType *1* or *2*",
+    fastModeSelected: "🎯 Great! Let's start with assessing life areas.\n\nHow satisfied are you with «Spirituality» right now? Rate from 1 to 10.",
+    jyotishModeSelected: "🔮 Wonderful choice! Astrological analysis will add depth to the recommendations.\n\nTo build your birth chart, I need some birth data.",
+    askBirthDate: "📅 *Step 1 of 4*\nPlease enter your birth date in format:\n*DD.MM.YYYY*",
+    askBirthTime: "⏰ *Step 2 of 4*\nIf you know the exact time — write it (HH:MM).\n\nIf not — choose an option:\n*morning / afternoon / evening / night*",
+    askBirthCountry: "🌍 *Step 3 of 4*\nWhich country were you born in?",
+    askBirthCity: "🏙️ *Step 4 of 4*\nWhat city were you born in?\n(or the nearest major city)",
+    birthDataComplete: "Thank you 🙏\nI will analyze your birth chart and use it\nto make recommendations *deeper and more accurate*.\n\nNow let's assess your life areas.\n\nHow satisfied are you with «Spirituality» right now? Rate from 1 to 10.",
+    invalidDate: "Please enter the date in *DD.MM.YYYY* format, for example: 15.03.1990",
   },
   hi: {
     welcome: "👋 Balance Mentor में आपका स्वागत है",
     chooseLanguage: "कृपया अपनी भाषा चुनें:",
     languageSet: "🙏 आपसे मिलकर खुशी हुई!\nमैं अनिल हूँ — आपका जीवन संतुलन मार्गदर्शक।\n\nमुझे यहाँ टेक्स्ट या वॉयस मैसेज भेजें, और अपनी प्रगति देखने के लिए नीचे बटन दबाएं।",
     openApp: "🌈 Balance Mentor खोलें",
+    modeSelection: "हम आगे कैसे बढ़ें?\n\n🎯 *त्वरित शुरुआत* — ज्योतिष के बिना, सीधे बात पर\n🔮 *ज्योतिष के साथ* — जन्म कुंडली पर गहन विश्लेषण\n\n*1* या *2* लिखें",
+    fastModeSelected: "🎯 बढ़िया! जीवन क्षेत्रों के मूल्यांकन से शुरू करते हैं।\n\nअभी आप «आध्यात्मिकता» से कितने संतुष्ट हैं? 1 से 10 तक रेट करें।",
+    jyotishModeSelected: "🔮 शानदार विकल्प! ज्योतिषीय विश्लेषण सिफारिशों में गहराई जोड़ेगा।\n\nआपकी जन्म कुंडली बनाने के लिए, मुझे कुछ जन्म डेटा चाहिए।",
+    askBirthDate: "📅 *चरण 1/4*\nकृपया जन्म तिथि इस प्रारूप में लिखें:\n*DD.MM.YYYY*",
+    askBirthTime: "⏰ *चरण 2/4*\nयदि आप सटीक समय जानते हैं — लिखें (HH:MM)।\n\nयदि नहीं — विकल्प चुनें:\n*सुबह / दोपहर / शाम / रात*",
+    askBirthCountry: "🌍 *चरण 3/4*\nआप किस देश में पैदा हुए थे?",
+    askBirthCity: "🏙️ *चरण 4/4*\nआप किस शहर में पैदा हुए थे?\n(या निकटतम बड़ा शहर)",
+    birthDataComplete: "धन्यवाद 🙏\nमैं आपकी जन्म कुंडली का विश्लेषण करूंगा और इसका उपयोग करूंगा\nताकि सिफारिशें *गहरी और अधिक सटीक* हों।\n\nअब जीवन क्षेत्रों का मूल्यांकन शुरू करते हैं।\n\nअभी आप «आध्यात्मिकता» से कितने संतुष्ट हैं? 1 से 10 तक रेट करें।",
+    invalidDate: "कृपया तिथि *DD.MM.YYYY* प्रारूप में दर्ज करें, उदाहरण: 15.03.1990",
   },
 };
 
-// System prompt for Anil with structured data extraction
-const SYSTEM_PROMPT = `Ты — Anil, мудрый, спокойный, поддерживающий ИИ-наставник.
+// System prompt for Anil (updated with Jyotish mode awareness)
+function getSystemPrompt(mode: string, birthData?: { date?: string; time?: string; country?: string; city?: string }, jyotishSummary?: Record<string, unknown>): string {
+  const basePrompt = `Ты — Anil, мудрый, спокойный, поддерживающий ИИ-наставник.
 
 🎯 ТВОЯ МИССИЯ
 Помочь человеку:
@@ -156,6 +203,34 @@ const SYSTEM_PROMPT = `Ты — Anil, мудрый, спокойный, подд
 - Упоминать AI, GPT, технические детали
 
 Ты — не гуру. Ты — проводник.`;
+
+  // Add Jyotish context if enabled
+  if (mode === "jyotish" && jyotishSummary) {
+    const jyotishContext = `
+
+🔮 РЕЖИМ ДЖЙОТИШ АКТИВИРОВАН
+Данные рождения пользователя:
+- Дата: ${birthData?.date || "не указана"}
+- Время: ${birthData?.time || "не указано"}
+- Страна: ${birthData?.country || "не указана"}
+- Город: ${birthData?.city || "не указан"}
+
+Астрологический анализ:
+${JSON.stringify(jyotishSummary, null, 2)}
+
+🧩 КАК ИНТЕГРИРОВАТЬ ДЖЙОТИШ В РЕКОМЕНДАЦИИ:
+- НЕ говори «по звёздам тебе нельзя»
+- ГОВОРИ: «у тебя сильная энергия в…», «важно двигаться мягко», «лучше начинать с…»
+- Делай акценты по сферам, учитывая астрологические данные
+- Рекомендации должны быть глубже и персональнее
+- Никогда не предсказывай будущее и не пугай
+- Используй астрологию для поддержки, а не ограничений`;
+
+    return basePrompt + jyotishContext;
+  }
+
+  return basePrompt;
+}
 
 async function sendMessage(chatId: number, text: string, options: Record<string, unknown> = {}) {
   const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
@@ -278,6 +353,10 @@ interface ConversationState {
   scores?: Record<string, number>;
   point_a_index?: number;
   point_b_index?: number;
+  birth_date?: string;
+  birth_time?: string;
+  birth_country?: string;
+  birth_city?: string;
 }
 
 // deno-lint-ignore no-explicit-any
@@ -300,10 +379,10 @@ async function updateConversationState(supabase: any, telegramId: string, state:
 }
 
 // deno-lint-ignore no-explicit-any
-async function getUserProfile(supabase: any, telegramId: string): Promise<{ id: string; language: string } | null> {
+async function getUserProfile(supabase: any, telegramId: string): Promise<{ id: string; language: string; mode: string; birth_date: string | null; birth_time: string | null; birth_country: string | null; birth_city: string | null; jyotish_summary: Record<string, unknown> | null } | null> {
   const { data } = await supabase
     .from("profiles")
-    .select("id, language")
+    .select("id, language, mode, birth_date, birth_time, birth_country, birth_city, jyotish_summary")
     .eq("telegram_id", telegramId)
     .maybeSingle();
   
@@ -316,13 +395,29 @@ async function getUserLanguage(supabase: any, telegramId: string): Promise<strin
   return profile?.language || "ru";
 }
 
+// deno-lint-ignore no-explicit-any
+async function updateProfileMode(supabase: any, telegramId: string, mode: string) {
+  await supabase
+    .from("profiles")
+    .update({ mode })
+    .eq("telegram_id", telegramId);
+}
+
+// deno-lint-ignore no-explicit-any
+async function updateProfileBirthData(supabase: any, telegramId: string, data: { birth_date?: string; birth_time?: string; birth_country?: string; birth_city?: string }) {
+  await supabase
+    .from("profiles")
+    .update(data)
+    .eq("telegram_id", telegramId);
+}
+
 // Save or update sphere details in database
 // deno-lint-ignore no-explicit-any
 async function saveSphereDetails(
   supabase: any,
   userId: string,
   sphere: string,
-  data: { score?: number; point_a?: string; point_b?: string }
+  data: { score?: number; point_a?: string; point_b?: string; jyotish_accent?: string }
 ) {
   console.log(`Saving sphere details for user ${userId}, sphere: ${sphere}`, data);
   
@@ -378,6 +473,53 @@ function parseScore(text: string): number | null {
     return parseInt(match[1], 10);
   }
   return null;
+}
+
+// Parse mode selection (1 or 2)
+function parseModeSelection(text: string): "fast" | "jyotish" | null {
+  const cleanText = text.replace(/^🎙\s*/, "").trim().toLowerCase();
+  
+  if (cleanText === "1" || cleanText.includes("быстр") || cleanText.includes("quick") || cleanText.includes("fast") || cleanText.includes("त्वरित")) {
+    return "fast";
+  }
+  if (cleanText === "2" || cleanText.includes("джйотиш") || cleanText.includes("jyotish") || cleanText.includes("ज्योतिष") || cleanText.includes("астролог")) {
+    return "jyotish";
+  }
+  return null;
+}
+
+// Parse birth date (DD.MM.YYYY)
+function parseBirthDate(text: string): string | null {
+  const cleanText = text.replace(/^🎙\s*/, "").trim();
+  const match = cleanText.match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})/);
+  if (match) {
+    const day = match[1].padStart(2, "0");
+    const month = match[2].padStart(2, "0");
+    const year = match[3];
+    return `${year}-${month}-${day}`;
+  }
+  return null;
+}
+
+// Parse birth time
+function parseBirthTime(text: string): string | null {
+  const cleanText = text.replace(/^🎙\s*/, "").trim().toLowerCase();
+  
+  // Check for exact time
+  const timeMatch = cleanText.match(/(\d{1,2})[:\.]?(\d{2})?/);
+  if (timeMatch) {
+    const hour = timeMatch[1].padStart(2, "0");
+    const minute = timeMatch[2]?.padStart(2, "0") || "00";
+    return `${hour}:${minute}`;
+  }
+  
+  // Check for approximate times
+  if (cleanText.includes("утр") || cleanText.includes("morning") || cleanText.includes("सुबह")) return "08:00";
+  if (cleanText.includes("день") || cleanText.includes("afternoon") || cleanText.includes("दोपहर")) return "13:00";
+  if (cleanText.includes("вечер") || cleanText.includes("evening") || cleanText.includes("शाम")) return "19:00";
+  if (cleanText.includes("ночь") || cleanText.includes("night") || cleanText.includes("रात")) return "02:00";
+  
+  return cleanText; // Return as-is if can't parse
 }
 
 // Determine what stage we should be in based on AI response
@@ -467,21 +609,13 @@ function detectStageFromAIResponse(response: string, currentState: ConversationS
   return newState;
 }
 
-// Detect which sphere is being discussed from AI response
-function detectSphereFromResponse(response: string, language: string): string | null {
-  for (const sphere of SPHERES) {
-    const sphereName = sphere[language as keyof typeof sphere] || sphere.ru;
-    if (response.toLowerCase().includes(sphereName.toLowerCase())) {
-      return sphere.key;
-    }
-  }
-  return null;
-}
-
-async function askAnil(messages: { role: string; content: string }[], userLanguage: string): Promise<string> {
-  console.log("Sending to Anil:", messages.length, "messages, language:", userLanguage);
+// deno-lint-ignore no-explicit-any
+async function askAnil(messages: { role: string; content: string }[], userLanguage: string, mode: string = "fast", birthData?: any, jyotishSummary?: Record<string, unknown>): Promise<string> {
+  console.log("Sending to Anil:", messages.length, "messages, language:", userLanguage, "mode:", mode);
   
   const languageContext = `\n\n🌐 ТЕКУЩИЙ ЯЗЫК ПОЛЬЗОВАТЕЛЯ: ${userLanguage === "ru" ? "Русский" : userLanguage === "hi" ? "Хинди" : "Английский"}. Отвечай ТОЛЬКО на этом языке.`;
+  
+  const systemPrompt = getSystemPrompt(mode, birthData, jyotishSummary);
   
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -492,7 +626,7 @@ async function askAnil(messages: { role: string; content: string }[], userLangua
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        { role: "system", content: SYSTEM_PROMPT + languageContext },
+        { role: "system", content: systemPrompt + languageContext },
         ...messages,
       ],
       stream: false,
@@ -602,6 +736,101 @@ async function processUserMessage(
   }
 }
 
+// Handle mode selection and jyotish flow
+// deno-lint-ignore no-explicit-any
+async function handleModeAndBirthFlow(
+  supabase: any,
+  chatId: number,
+  telegramId: string,
+  userText: string,
+  currentState: ConversationState,
+  userLanguage: string
+): Promise<boolean> {
+  const msgs = MESSAGES[userLanguage] || MESSAGES.en;
+  
+  // Handle mode selection
+  if (currentState.stage === STAGES.SELECT_MODE) {
+    const mode = parseModeSelection(userText);
+    
+    if (mode === "fast") {
+      await updateProfileMode(supabase, telegramId, "fast");
+      currentState.stage = STAGES.SCORING;
+      currentState.current_sphere_index = 0;
+      await updateConversationState(supabase, telegramId, currentState);
+      await sendMessage(chatId, msgs.fastModeSelected);
+      return true;
+    } else if (mode === "jyotish") {
+      await updateProfileMode(supabase, telegramId, "jyotish");
+      currentState.stage = STAGES.BIRTH_DATE;
+      await updateConversationState(supabase, telegramId, currentState);
+      await sendMessage(chatId, msgs.jyotishModeSelected);
+      await sendMessage(chatId, msgs.askBirthDate);
+      return true;
+    }
+    // If invalid selection, re-ask
+    await sendMessage(chatId, msgs.modeSelection);
+    return true;
+  }
+  
+  // Handle birth date
+  if (currentState.stage === STAGES.BIRTH_DATE) {
+    const birthDate = parseBirthDate(userText);
+    if (birthDate) {
+      currentState.birth_date = birthDate;
+      await updateProfileBirthData(supabase, telegramId, { birth_date: birthDate });
+      currentState.stage = STAGES.BIRTH_TIME;
+      await updateConversationState(supabase, telegramId, currentState);
+      await sendMessage(chatId, msgs.askBirthTime);
+    } else {
+      await sendMessage(chatId, msgs.invalidDate);
+    }
+    return true;
+  }
+  
+  // Handle birth time
+  if (currentState.stage === STAGES.BIRTH_TIME) {
+    const birthTime = parseBirthTime(userText);
+    currentState.birth_time = birthTime || userText;
+    await updateProfileBirthData(supabase, telegramId, { birth_time: birthTime || userText });
+    currentState.stage = STAGES.BIRTH_COUNTRY;
+    await updateConversationState(supabase, telegramId, currentState);
+    await sendMessage(chatId, msgs.askBirthCountry);
+    return true;
+  }
+  
+  // Handle birth country
+  if (currentState.stage === STAGES.BIRTH_COUNTRY) {
+    const country = userText.replace(/^🎙\s*/, "").trim();
+    currentState.birth_country = country;
+    await updateProfileBirthData(supabase, telegramId, { birth_country: country });
+    currentState.stage = STAGES.BIRTH_CITY;
+    await updateConversationState(supabase, telegramId, currentState);
+    await sendMessage(chatId, msgs.askBirthCity);
+    return true;
+  }
+  
+  // Handle birth city
+  if (currentState.stage === STAGES.BIRTH_CITY) {
+    const city = userText.replace(/^🎙\s*/, "").trim();
+    currentState.birth_city = city;
+    await updateProfileBirthData(supabase, telegramId, { birth_city: city });
+    
+    // Move to scoring
+    currentState.stage = STAGES.SCORING;
+    currentState.current_sphere_index = 0;
+    await updateConversationState(supabase, telegramId, currentState);
+    
+    // Note: MCP call would happen here in production
+    // For now, we proceed without the jyotish summary
+    console.log("Birth data collected. MCP Jyotish call would happen here.");
+    
+    await sendMessage(chatId, msgs.birthDataComplete);
+    return true;
+  }
+  
+  return false; // Not handled by this function
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -615,14 +844,17 @@ serve(async (req) => {
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Handle /start command
-    if (update.message?.text === "/start") {
+    if (update.message?.text === "/start" || update.message?.text?.startsWith("/start ")) {
       const chatId = update.message.chat.id;
       const telegramId = update.message.from.id.toString();
       const firstName = update.message.from.first_name || "";
       const lastName = update.message.from.last_name || "";
       const fullName = `${firstName} ${lastName}`.trim() || "User";
+      
+      // Check for deep link payload
+      const deepLinkPayload = update.message.text.replace("/start ", "").trim();
 
-      console.log(`/start from user ${telegramId} (${fullName})`);
+      console.log(`/start from user ${telegramId} (${fullName}), payload: ${deepLinkPayload}`);
 
       // Reset conversation state
       await updateConversationState(supabaseAdmin, telegramId, { 
@@ -633,7 +865,8 @@ serve(async (req) => {
         point_b_index: 0,
       });
 
-      // Send welcome message with language selection
+      // If deep link is "balance", skip to mode selection after language
+      // For now, show language selection first
       const welcomeText = `${MESSAGES.en.welcome}\n\n${MESSAGES.en.chooseLanguage}`;
       
       await sendMessage(chatId, welcomeText, {
@@ -678,7 +911,7 @@ serve(async (req) => {
             language: lang, 
             name: fullName,
             conversation_state: { 
-              stage: STAGES.SCORING, 
+              stage: STAGES.SELECT_MODE, 
               current_sphere_index: 0,
               scores: {},
               point_a_index: 0,
@@ -692,7 +925,7 @@ serve(async (req) => {
 
       const messages = MESSAGES[lang] || MESSAGES.en;
 
-      // Send confirmation message with inline button (not persistent keyboard)
+      // Send confirmation message with inline button
       await sendMessage(chatId, messages.languageSet, {
         reply_markup: {
           inline_keyboard: [
@@ -706,10 +939,13 @@ serve(async (req) => {
         },
       });
 
-      // Remove any persistent keyboard that might exist
+      // Remove any persistent keyboard
       await sendMessage(chatId, "✨", {
         reply_markup: { remove_keyboard: true },
       });
+      
+      // Now ask for mode selection
+      await sendMessage(chatId, messages.modeSelection);
 
       return new Response(JSON.stringify({ ok: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -717,7 +953,7 @@ serve(async (req) => {
     }
 
     // Handle text messages (chat with Anil)
-    if (update.message?.text && update.message.text !== "/start") {
+    if (update.message?.text && update.message.text !== "/start" && !update.message.text.startsWith("/start ")) {
       const chatId = update.message.chat.id;
       const telegramId = update.message.from.id.toString();
       const userText = update.message.text;
@@ -729,6 +965,15 @@ serve(async (req) => {
       // Get current state and language
       const userLanguage = await getUserLanguage(supabaseAdmin, telegramId);
       const currentState = await getConversationState(supabaseAdmin, telegramId);
+      const profile = await getUserProfile(supabaseAdmin, telegramId);
+
+      // Handle mode selection and birth data collection
+      const handled = await handleModeAndBirthFlow(supabaseAdmin, chatId, telegramId, userText, currentState, userLanguage);
+      if (handled) {
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       // Process user message and save data based on stage
       await processUserMessage(supabaseAdmin, telegramId, userText, currentState, userLanguage);
@@ -740,8 +985,21 @@ serve(async (req) => {
       // Save user message
       await saveChatMessage(supabaseAdmin, telegramId, "user", userText);
 
-      // Get AI response
-      const aiResponse = await askAnil(messagesForAI, userLanguage);
+      // Get AI response with mode context
+      const birthData = profile ? {
+        date: profile.birth_date,
+        time: profile.birth_time,
+        country: profile.birth_country,
+        city: profile.birth_city,
+      } : undefined;
+      
+      const aiResponse = await askAnil(
+        messagesForAI, 
+        userLanguage, 
+        profile?.mode || "fast",
+        birthData,
+        profile?.jyotish_summary || undefined
+      );
 
       // Update state based on AI response
       const updatedState = await getConversationState(supabaseAdmin, telegramId);
@@ -788,6 +1046,15 @@ serve(async (req) => {
         // Get current state and language
         const userLanguage = await getUserLanguage(supabaseAdmin, telegramId);
         const currentState = await getConversationState(supabaseAdmin, telegramId);
+        const profile = await getUserProfile(supabaseAdmin, telegramId);
+
+        // Handle mode selection and birth data collection
+        const handled = await handleModeAndBirthFlow(supabaseAdmin, chatId, telegramId, transcribedText, currentState, userLanguage);
+        if (handled) {
+          return new Response(JSON.stringify({ ok: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
 
         // Process transcribed message and save data based on stage
         await processUserMessage(supabaseAdmin, telegramId, transcribedText, currentState, userLanguage);
@@ -799,8 +1066,21 @@ serve(async (req) => {
         // Save user message (with voice indicator)
         await saveChatMessage(supabaseAdmin, telegramId, "user", `🎙 ${transcribedText}`);
 
-        // Get AI response
-        const aiResponse = await askAnil(messagesForAI, userLanguage);
+        // Get AI response with mode context
+        const birthData = profile ? {
+          date: profile.birth_date,
+          time: profile.birth_time,
+          country: profile.birth_country,
+          city: profile.birth_city,
+        } : undefined;
+        
+        const aiResponse = await askAnil(
+          messagesForAI, 
+          userLanguage, 
+          profile?.mode || "fast",
+          birthData,
+          profile?.jyotish_summary || undefined
+        );
 
         // Update state based on AI response
         const updatedState = await getConversationState(supabaseAdmin, telegramId);
