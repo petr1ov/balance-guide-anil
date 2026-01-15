@@ -827,10 +827,45 @@ function detectStageFromAIResponse(response: string, currentState: ConversationS
 }
 
 // deno-lint-ignore no-explicit-any
-async function askAnil(messages: { role: string; content: string }[], userLanguage: string, mode: string = "fast", birthData?: any, jyotishSummary?: Record<string, unknown>): Promise<string> {
-  console.log("Sending to Anil:", messages.length, "messages, language:", userLanguage, "mode:", mode);
+async function askAnil(
+  messages: { role: string; content: string }[], 
+  userLanguage: string, 
+  mode: string = "fast", 
+  birthData?: any, 
+  jyotishSummary?: Record<string, unknown>,
+  stateContext?: { stage: string; currentSphereIndex: number; pointAIndex?: number; pointBIndex?: number }
+): Promise<string> {
+  console.log("Sending to Anil:", messages.length, "messages, language:", userLanguage, "mode:", mode, "state:", stateContext);
   
   const languageContext = `\n\n🌐 ТЕКУЩИЙ ЯЗЫК ПОЛЬЗОВАТЕЛЯ: ${userLanguage === "ru" ? "Русский" : userLanguage === "hi" ? "Хинди" : "Английский"}. Отвечай ТОЛЬКО на этом языке.`;
+  
+  // Build state context for AI
+  let stateInstruction = "";
+  if (stateContext) {
+    const { stage, currentSphereIndex, pointAIndex, pointBIndex } = stateContext;
+    
+    if (stage === STAGES.SCORING && currentSphereIndex < SPHERES.length) {
+      const nextSphere = SPHERES[currentSphereIndex];
+      const sphereName = userLanguage === "ru" ? nextSphere.ru : userLanguage === "hi" ? nextSphere.hi : nextSphere.en;
+      stateInstruction = `\n\n🎯 ТЕКУЩАЯ ЗАДАЧА: Ты ДОЛЖЕН спросить оценку (1-10) для сферы «${sphereName}». Это сфера №${currentSphereIndex + 1} из 7. НЕ ПОВТОРЯЙ предыдущие сферы. Задай ОДИН вопрос о сфере «${sphereName}».`;
+    } else if (stage === STAGES.POINT_A) {
+      const idx = pointAIndex ?? 0;
+      if (idx < SPHERES.length) {
+        const sphere = SPHERES[idx];
+        const sphereName = userLanguage === "ru" ? sphere.ru : userLanguage === "hi" ? sphere.hi : sphere.en;
+        stateInstruction = `\n\n🎯 ТЕКУЩАЯ ЗАДАЧА: Спроси пользователя о Точке A (текущей ситуации) для сферы «${sphereName}».`;
+      }
+    } else if (stage === STAGES.POINT_B) {
+      const idx = pointBIndex ?? 0;
+      if (idx < SPHERES.length) {
+        const sphere = SPHERES[idx];
+        const sphereName = userLanguage === "ru" ? sphere.ru : userLanguage === "hi" ? sphere.hi : sphere.en;
+        stateInstruction = `\n\n🎯 ТЕКУЩАЯ ЗАДАЧА: Спроси пользователя о Точке B (желаемом результате) для сферы «${sphereName}».`;
+      }
+    } else if (stage === STAGES.DAILY) {
+      stateInstruction = `\n\n🎯 ТЕКУЩАЯ ЗАДАЧА: Дай ежедневные рекомендации или ответь на вопрос пользователя в режиме сопровождения.`;
+    }
+  }
   
   const systemPrompt = getSystemPrompt(mode, birthData, jyotishSummary);
   
@@ -843,7 +878,7 @@ async function askAnil(messages: { role: string; content: string }[], userLangua
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        { role: "system", content: systemPrompt + languageContext },
+        { role: "system", content: systemPrompt + languageContext + stateInstruction },
         ...messages,
       ],
       stream: false,
@@ -1232,7 +1267,7 @@ serve(async (req) => {
       // Save user message
       await saveChatMessage(supabaseAdmin, telegramId, "user", userText);
 
-      // Get AI response with mode context
+      // Get AI response with mode context and state context
       const birthData = profile ? {
         date: profile.birth_date,
         time: profile.birth_time,
@@ -1240,12 +1275,21 @@ serve(async (req) => {
         city: profile.birth_city,
       } : undefined;
       
+      // Get the updated state after processing the message
+      const stateForAI = await getConversationState(supabaseAdmin, telegramId);
+      
       const aiResponse = await askAnil(
         messagesForAI, 
         userLanguage, 
         profile?.mode || "fast",
         birthData,
-        profile?.jyotish_summary || undefined
+        profile?.jyotish_summary || undefined,
+        {
+          stage: stateForAI.stage,
+          currentSphereIndex: stateForAI.current_sphere_index,
+          pointAIndex: stateForAI.point_a_index,
+          pointBIndex: stateForAI.point_b_index,
+        }
       );
 
       // Update state based on AI response
@@ -1313,7 +1357,7 @@ serve(async (req) => {
         // Save user message (with voice indicator)
         await saveChatMessage(supabaseAdmin, telegramId, "user", `🎙 ${transcribedText}`);
 
-        // Get AI response with mode context
+        // Get AI response with mode context and state context
         const birthData = profile ? {
           date: profile.birth_date,
           time: profile.birth_time,
@@ -1321,12 +1365,21 @@ serve(async (req) => {
           city: profile.birth_city,
         } : undefined;
         
+        // Get the updated state after processing the message
+        const stateForAI = await getConversationState(supabaseAdmin, telegramId);
+        
         const aiResponse = await askAnil(
           messagesForAI, 
           userLanguage, 
           profile?.mode || "fast",
           birthData,
-          profile?.jyotish_summary || undefined
+          profile?.jyotish_summary || undefined,
+          {
+            stage: stateForAI.stage,
+            currentSphereIndex: stateForAI.current_sphere_index,
+            pointAIndex: stateForAI.point_a_index,
+            pointBIndex: stateForAI.point_b_index,
+          }
         );
 
         // Update state based on AI response
