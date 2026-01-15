@@ -835,7 +835,11 @@ async function askAnil(
   jyotishSummary?: Record<string, unknown>,
   stateContext?: { stage: string; currentSphereIndex: number; pointAIndex?: number; pointBIndex?: number }
 ): Promise<string> {
-  console.log("Sending to Anil:", messages.length, "messages, language:", userLanguage, "mode:", mode, "state:", stateContext);
+  console.log("=== ASKING ANIL ===");
+  console.log("Messages count:", messages.length);
+  console.log("Language:", userLanguage);
+  console.log("Mode:", mode);
+  console.log("State context:", JSON.stringify(stateContext));
   
   const languageContext = `\n\n🌐 ТЕКУЩИЙ ЯЗЫК ПОЛЬЗОВАТЕЛЯ: ${userLanguage === "ru" ? "Русский" : userLanguage === "hi" ? "Хинди" : "Английский"}. Отвечай ТОЛЬКО на этом языке.`;
   
@@ -847,7 +851,13 @@ async function askAnil(
     if (stage === STAGES.SCORING && currentSphereIndex < SPHERES.length) {
       const nextSphere = SPHERES[currentSphereIndex];
       const sphereName = userLanguage === "ru" ? nextSphere.ru : userLanguage === "hi" ? nextSphere.hi : nextSphere.en;
-      stateInstruction = `\n\n🎯 ТЕКУЩАЯ ЗАДАЧА: Ты ДОЛЖЕН спросить оценку (1-10) для сферы «${sphereName}». Это сфера №${currentSphereIndex + 1} из 7. НЕ ПОВТОРЯЙ предыдущие сферы. Задай ОДИН вопрос о сфере «${sphereName}».`;
+      stateInstruction = `\n\n🎯 КРИТИЧЕСКИ ВАЖНО - ТЕКУЩАЯ ЗАДАЧА: 
+Ты ОБЯЗАН спросить оценку (1-10) ТОЛЬКО для сферы «${sphereName}». 
+Это сфера №${currentSphereIndex + 1} из 7. 
+❗ ЗАПРЕЩЕНО спрашивать о предыдущих сферах!
+❗ ЗАПРЕЩЕНО повторять вопрос о Духовности если это не сфера №1!
+Задай ОДИН короткий вопрос: "Насколько ты доволен сферой «${sphereName}»? Оцени от 1 до 10."`;
+      console.log("Generated state instruction for sphere:", sphereName, "index:", currentSphereIndex);
     } else if (stage === STAGES.POINT_A) {
       const idx = pointAIndex ?? 0;
       if (idx < SPHERES.length) {
