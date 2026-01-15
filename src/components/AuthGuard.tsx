@@ -44,7 +44,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
           {t("auth.openInTelegramDescription")}
         </p>
         <a
-          href="https://t.me/balance_mentor_bot"
+          href="https://t.me/test108_aibot"
           target="_blank"
           rel="noopener noreferrer"
           className="mt-6 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold shadow-lg hover:opacity-90 transition-opacity"
