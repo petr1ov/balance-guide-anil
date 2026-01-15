@@ -145,28 +145,46 @@ export type Database = {
       }
       profiles: {
         Row: {
+          birth_city: string | null
+          birth_country: string | null
+          birth_date: string | null
+          birth_time: string | null
           conversation_state: Json | null
           created_at: string
           id: string
+          jyotish_summary: Json | null
           language: string | null
+          mode: string | null
           name: string | null
           telegram_id: string
           updated_at: string
         }
         Insert: {
+          birth_city?: string | null
+          birth_country?: string | null
+          birth_date?: string | null
+          birth_time?: string | null
           conversation_state?: Json | null
           created_at?: string
           id?: string
+          jyotish_summary?: Json | null
           language?: string | null
+          mode?: string | null
           name?: string | null
           telegram_id: string
           updated_at?: string
         }
         Update: {
+          birth_city?: string | null
+          birth_country?: string | null
+          birth_date?: string | null
+          birth_time?: string | null
           conversation_state?: Json | null
           created_at?: string
           id?: string
+          jyotish_summary?: Json | null
           language?: string | null
+          mode?: string | null
           name?: string | null
           telegram_id?: string
           updated_at?: string
@@ -241,6 +259,7 @@ export type Database = {
           created_at: string
           daily_plan: string[] | null
           id: string
+          jyotish_accent: string | null
           point_a: string | null
           point_b: string | null
           score: number | null
@@ -252,6 +271,7 @@ export type Database = {
           created_at?: string
           daily_plan?: string[] | null
           id?: string
+          jyotish_accent?: string | null
           point_a?: string | null
           point_b?: string | null
           score?: number | null
@@ -263,6 +283,7 @@ export type Database = {
           created_at?: string
           daily_plan?: string[] | null
           id?: string
+          jyotish_accent?: string | null
           point_a?: string | null
           point_b?: string | null
           score?: number | null

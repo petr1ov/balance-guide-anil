@@ -32,6 +32,7 @@ const Index = () => {
   const [sphereDetails, setSphereDetails] = useState<Record<string, SphereDetail>>({});
   const [focusArea, setFocusArea] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>(telegramUser?.first_name || "Пользователь");
+  const [userMode, setUserMode] = useState<"fast" | "jyotish">("fast");
   
   const [scores, setScores] = useState<BalanceScores>(DEFAULT_SCORES);
 
@@ -51,12 +52,15 @@ const Index = () => {
         // Fetch profile
         const { data: profile } = await supabase
           .from("profiles")
-          .select("name, language")
+          .select("name, language, mode")
           .eq("id", user.id)
           .maybeSingle();
 
         if (profile?.name) {
           setUserName(profile.name);
+        }
+        if (profile?.mode) {
+          setUserMode(profile.mode as "fast" | "jyotish");
         }
 
         // Fetch balance scores
@@ -226,6 +230,7 @@ const Index = () => {
             focusArea={focusArea ?? undefined}
             language={language as Language}
             avatarUrl={telegramUser?.photo_url}
+            mode={userMode}
             onReassessBalance={handleReassessBalance}
             onOpenReminders={handleOpenReminders}
             onOpenLanguage={handleOpenLanguage}

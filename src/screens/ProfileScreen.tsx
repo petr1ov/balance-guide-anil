@@ -1,4 +1,4 @@
-import { Settings, RefreshCw, Target, TrendingUp, Globe, Bell } from "lucide-react";
+import { Settings, RefreshCw, Target, TrendingUp, Globe, Bell, Sparkles, Zap } from "lucide-react";
 import { useTranslation, Language } from "@/lib/i18n";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -7,10 +7,12 @@ interface ProfileScreenProps {
   focusArea?: string;
   language: Language;
   avatarUrl?: string;
+  mode?: "fast" | "jyotish";
   onReassessBalance: () => void;
   onOpenReminders: () => void;
   onOpenLanguage: () => void;
   onOpenHistory: () => void;
+  onChangeMode?: () => void;
 }
 
 const LANGUAGE_LABELS: Record<Language, string> = {
@@ -24,12 +26,19 @@ const ProfileScreen = ({
   focusArea, 
   language,
   avatarUrl,
+  mode = "fast",
   onReassessBalance, 
   onOpenReminders,
   onOpenLanguage,
   onOpenHistory,
+  onChangeMode,
 }: ProfileScreenProps) => {
   const { t } = useTranslation(language);
+
+  const modeLabels = {
+    fast: { ru: "Быстрый старт", en: "Quick Start", hi: "त्वरित शुरुआत" },
+    jyotish: { ru: "С Джйотиш", en: "With Jyotish", hi: "ज्योतिष के साथ" },
+  };
 
   return (
     <div className="min-h-screen bg-background pb-28 safe-top">
@@ -55,6 +64,26 @@ const ProfileScreen = ({
               <h2 className="text-xl font-semibold text-foreground">{userName}</h2>
               <p className="text-sm text-muted-foreground">{t("profile.member")}</p>
             </div>
+          </div>
+          
+          {/* Mode Badge */}
+          <div className="mt-4 flex items-center gap-2">
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
+              mode === "jyotish" 
+                ? "bg-spirituality/20 text-spirituality-dark" 
+                : "bg-primary/10 text-primary"
+            }`}>
+              {mode === "jyotish" ? <Sparkles className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
+              {modeLabels[mode][language]}
+            </div>
+            {onChangeMode && (
+              <button 
+                onClick={onChangeMode}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {language === "ru" ? "Изменить" : language === "hi" ? "बदलें" : "Change"}
+              </button>
+            )}
           </div>
         </div>
 
