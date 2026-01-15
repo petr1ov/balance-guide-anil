@@ -18,15 +18,12 @@ const JYOTISH_MCP_URL = "https://server.smithery.ai/@latiftplgu/astrology_mcp/mc
 // Mini App URL
 const MINI_APP_URL = "https://balance-guide-anil.lovable.app";
 
-// 7 spheres in order
+// 4 spheres in order (Mini App survey)
 const SPHERES = [
   { key: "spirituality", ru: "Духовность", en: "Spirituality", hi: "आध्यात्मिकता" },
   { key: "relationships", ru: "Отношения", en: "Relationships", hi: "रिश्ते" },
   { key: "health", ru: "Здоровье и энергия", en: "Health & Energy", hi: "स्वास्थ्य और ऊर्जा" },
   { key: "finance", ru: "Финансы", en: "Finance", hi: "वित्त" },
-  { key: "career", ru: "Реализация и дело", en: "Career & Purpose", hi: "करियर और उद्देश्य" },
-  { key: "rest", ru: "Отдых и радость", en: "Rest & Joy", hi: "आराम और खुशी" },
-  { key: "environment", ru: "Окружение и среда", en: "Environment", hi: "वातावरण" },
 ];
 
 // Conversation stages (FSM)
@@ -112,7 +109,7 @@ function getSystemPrompt(mode: string, birthData?: { date?: string; time?: strin
 
 🎯 ТВОЯ МИССИЯ
 Помочь человеку:
-1. Осознать баланс своей жизни (7 сфер, оценка 1-10)
+1. Осознать баланс своей жизни (4 сферы, оценка 1-10)
 2. Определить Точку A (текущее состояние) по каждой сфере
 3. Определить Точку B (желаемый результат) по каждой сфере
 4. Ежедневно сопровождать рекомендациями
@@ -124,14 +121,11 @@ function getSystemPrompt(mode: string, birthData?: { date?: string; time?: strin
 - hi — хинди
 ❗ Никогда не переключай язык сам.
 
-🧩 7 СФЕР ЖИЗНИ (СТРОГО ПО ПОРЯДКУ)
+🧩 4 СФЕРЫ ЖИЗНИ (СТРОГО ПО ПОРЯДКУ)
 1. Духовность / Внутренняя гармония / Смысл
 2. Отношения
 3. Здоровье и энергия
 4. Финансы
-5. Реализация и дело
-6. Отдых и радость
-7. Окружение и среда
 
 ❗ КРИТИЧНО:
 - Никогда не пропускай сферу
@@ -149,7 +143,7 @@ function getSystemPrompt(mode: string, birthData?: { date?: string; time?: strin
 - Никогда не повторяй вопрос без причины
 
 🅰️ ЭТАП 2: ТОЧКА A — ТЕКУЩАЯ СИТУАЦИЯ
-После ВСЕХ 7 оценок переходишь к Точке A.
+После ВСЕХ 4 оценок переходишь к Точке A.
 Для каждой сферы спрашиваешь:
 "Опиши текущую ситуацию в сфере «{название}». Что происходит сейчас?"
 
@@ -853,7 +847,7 @@ async function askAnil(
       const sphereName = userLanguage === "ru" ? nextSphere.ru : userLanguage === "hi" ? nextSphere.hi : nextSphere.en;
       stateInstruction = `\n\n🎯 КРИТИЧЕСКИ ВАЖНО - ТЕКУЩАЯ ЗАДАЧА: 
 Ты ОБЯЗАН спросить оценку (1-10) ТОЛЬКО для сферы «${sphereName}». 
-Это сфера №${currentSphereIndex + 1} из 7. 
+Это сфера №${currentSphereIndex + 1} из ${SPHERES.length}. 
 ❗ ЗАПРЕЩЕНО спрашивать о предыдущих сферах!
 ❗ ЗАПРЕЩЕНО повторять вопрос о Духовности если это не сфера №1!
 Задай ОДИН короткий вопрос: "Насколько ты доволен сферой «${sphereName}»? Оцени от 1 до 10."`;
@@ -922,7 +916,22 @@ async function processUserMessage(
   
   const userId = profile.id;
   console.log(`Processing message in stage: ${currentState.stage}, sphere index: ${currentState.current_sphere_index}`);
-  
+
+  // If sphere count changed (we now ask only 4 spheres), normalize indices to avoid getting stuck
+  if (currentState.stage === STAGES.SCORING && currentState.current_sphere_index >= SPHERES.length) {
+    currentState.stage = STAGES.POINT_A;
+    currentState.point_a_index = 0;
+    await updateConversationState(supabase, telegramId, currentState);
+  }
+  if (currentState.stage === STAGES.POINT_A && (currentState.point_a_index || 0) >= SPHERES.length) {
+    currentState.stage = STAGES.DAILY;
+    await updateConversationState(supabase, telegramId, currentState);
+  }
+  if (currentState.stage === STAGES.POINT_B && (currentState.point_b_index || 0) >= SPHERES.length) {
+    currentState.stage = STAGES.DAILY;
+    await updateConversationState(supabase, telegramId, currentState);
+  }
+
   // Handle scoring stage
   if (currentState.stage === STAGES.SCORING) {
     const score = parseScore(userText);
