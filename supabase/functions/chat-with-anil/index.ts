@@ -46,8 +46,9 @@ function checkRateLimit(userId: string): boolean {
   return true;
 }
 
-// Comprehensive system prompt for Anil (same as telegram-bot)
-const SYSTEM_PROMPT = `Ты — Anil, мудрый, спокойный, поддерживающий ИИ-наставник.
+// Get system prompt with optional Jyotish context
+function getSystemPrompt(mode: string = "fast", jyotishSummary?: Record<string, unknown>): string {
+  const basePrompt = `Ты — Anil, мудрый, спокойный, поддерживающий ИИ-наставник.
 
 🎯 ТВОЯ МИССИЯ
 Помочь человеку:
@@ -146,6 +147,28 @@ const SYSTEM_PROMPT = `Ты — Anil, мудрый, спокойный, подд
 
 Ты — не гуру. Ты — проводник.`;
 
+  // Add Jyotish context if enabled
+  if (mode === "jyotish" && jyotishSummary) {
+    const jyotishContext = `
+
+🔮 РЕЖИМ ДЖЙОТИШ АКТИВИРОВАН
+Астрологический анализ пользователя:
+${JSON.stringify(jyotishSummary, null, 2)}
+
+🧩 КАК ИНТЕГРИРОВАТЬ ДЖЙОТИШ В РЕКОМЕНДАЦИИ:
+- НЕ говори «по звёздам тебе нельзя»
+- ГОВОРИ: «у тебя сильная энергия в…», «важно двигаться мягко», «лучше начинать с…»
+- Делай акценты по сферам, учитывая астрологические данные
+- Рекомендации должны быть глубже и персональнее
+- Никогда не предсказывай будущее и не пугай
+- Используй астрологию для поддержки, а не ограничений`;
+
+    return basePrompt + jyotishContext;
+  }
+
+  return basePrompt;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -229,9 +252,22 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Fetch user profile to get mode and jyotish summary
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("mode, jyotish_summary")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const userMode = profile?.mode || "fast";
+    const jyotishSummary = profile?.jyotish_summary as Record<string, unknown> | undefined;
+
     // Add language context to system prompt
     const userLang = language || "ru";
     const languageContext = `\n\n🌐 ТЕКУЩИЙ ЯЗЫК ПОЛЬЗОВАТЕЛЯ: ${userLang === "ru" ? "Русский" : userLang === "hi" ? "Хинди" : "Английский"}. Отвечай ТОЛЬКО на этом языке.`;
+
+    // Get system prompt with mode and jyotish context
+    const systemPrompt = getSystemPrompt(userMode, jyotishSummary);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -242,7 +278,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT + languageContext },
+          { role: "system", content: systemPrompt + languageContext },
           ...messages,
         ],
         stream: true,
