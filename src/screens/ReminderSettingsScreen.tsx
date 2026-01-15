@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, Clock, ChevronLeft, Sun, Sunrise, Moon, Check } from "lucide-react";
+import { Bell, Clock, ChevronLeft, Sun, Sunrise, Moon, Check, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useTelegramAuth } from "@/contexts/TelegramAuthContext";
@@ -38,18 +38,21 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
   const [morningTime, setMorningTime] = useState<string | null>("09:00");
   const [dayTime, setDayTime] = useState<string | null>("14:00");
   const [eveningTime, setEveningTime] = useState<string | null>("20:00");
+  const [isTelegramAvailable, setIsTelegramAvailable] = useState(false);
 
-  // Detect timezone on mount
+  // Check Telegram availability and detect timezone on mount
   useEffect(() => {
     const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     setTimezone(detectedTimezone);
+    
+    const tg = (window as any).Telegram?.WebApp;
+    setIsTelegramAvailable(!!tg?.initData);
   }, []);
 
   // Load existing settings
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        // Get telegram_id from localStorage as fallback
         const tgId = telegramId || localStorage.getItem("telegram_id");
         
         if (!tgId) {
@@ -57,11 +60,9 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
           return;
         }
 
-        // Try to load from DB via edge function or direct query
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session) {
-          // If authenticated, use direct query
           const { data, error } = await supabase
             .from("reminders" as any)
             .select("*")
@@ -76,7 +77,6 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
             setEveningTime(data.evening_time);
           }
         }
-        // If not authenticated, we'll use default values
       } catch (err) {
         console.error("Error loading reminder settings:", err);
       } finally {
@@ -90,21 +90,23 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
   const handleSave = async () => {
     setSaving(true);
     try {
-      // SECURITY: Use Telegram initData for signature verification (not telegram_id from body)
       const tg = (window as any).Telegram?.WebApp;
       const initData = tg?.initData;
       
       if (!initData) {
         toast({
           title: t("common.error", language as any),
-          description: "Telegram данные не найдены. Откройте приложение через Telegram.",
+          description: language === "ru" 
+            ? "Откройте приложение через Telegram для сохранения настроек"
+            : language === "hi"
+            ? "सेटिंग्स सहेजने के लिए टेलीग्राम के माध्यम से ऐप खोलें"
+            : "Open the app through Telegram to save settings",
           variant: "destructive",
         });
         setSaving(false);
         return;
       }
 
-      // Save via edge function with signed initData
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-reminder`,
         {
@@ -114,7 +116,7 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({
-            initData, // Pass signed Telegram data instead of raw telegram_id
+            initData,
             timezone,
             enabled,
             morningTime,
@@ -140,7 +142,11 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
       console.error("Error saving reminder settings:", error);
       toast({
         title: t("common.error", language as any),
-        description: "Не удалось сохранить настройки",
+        description: language === "ru" 
+          ? "Не удалось сохранить настройки"
+          : language === "hi"
+          ? "सेटिंग्स सहेजने में विफल"
+          : "Failed to save settings",
         variant: "destructive",
       });
     } finally {
@@ -183,7 +189,10 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
               : "bg-muted text-muted-foreground"
           }`}
         >
-          {selectedTime ? "Вкл" : "Выкл"}
+          {selectedTime 
+            ? (language === "ru" ? "Вкл" : language === "hi" ? "चालू" : "On")
+            : (language === "ru" ? "Выкл" : language === "hi" ? "बंद" : "Off")
+          }
         </button>
       </div>
       
@@ -215,6 +224,54 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
     );
   }
 
+  const getLabels = () => {
+    if (language === "ru") {
+      return {
+        title: "Уведомления",
+        masterTitle: "Напоминания от Anil",
+        masterDesc: "Получать сообщения в Telegram",
+        timezone: "Часовой пояс",
+        timezoneAuto: "Определён автоматически",
+        morning: "Утро",
+        day: "День",
+        evening: "Вечер",
+        save: "Сохранить",
+        telegramRequired: "Откройте в Telegram",
+        telegramRequiredDesc: "Для настройки уведомлений откройте приложение через бота в Telegram",
+      };
+    }
+    if (language === "hi") {
+      return {
+        title: "सूचनाएं",
+        masterTitle: "अनिल से अनुस्मारक",
+        masterDesc: "टेलीग्राम में संदेश प्राप्त करें",
+        timezone: "समय क्षेत्र",
+        timezoneAuto: "स्वचालित रूप से पता चला",
+        morning: "सुबह",
+        day: "दिन",
+        evening: "शाम",
+        save: "सहेजें",
+        telegramRequired: "टेलीग्राम में खोलें",
+        telegramRequiredDesc: "सूचनाएं सेट करने के लिए, टेलीग्राम में बॉट के माध्यम से ऐप खोलें",
+      };
+    }
+    return {
+      title: "Notifications",
+      masterTitle: "Reminders from Anil",
+      masterDesc: "Receive messages in Telegram",
+      timezone: "Timezone",
+      timezoneAuto: "Detected automatically",
+      morning: "Morning",
+      day: "Day",
+      evening: "Evening",
+      save: "Save",
+      telegramRequired: "Open in Telegram",
+      telegramRequiredDesc: "To set up notifications, open the app through the bot in Telegram",
+    };
+  };
+
+  const labels = getLabels();
+
   return (
     <div className="min-h-screen bg-background pb-28 safe-top">
       {/* Header */}
@@ -225,10 +282,27 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
         >
           <ChevronLeft className="w-6 h-6 text-foreground" />
         </button>
-        <h1 className="text-2xl font-bold text-foreground">Уведомления</h1>
+        <h1 className="text-2xl font-bold text-foreground">{labels.title}</h1>
       </div>
 
       <div className="px-6 space-y-6">
+        {/* Telegram Warning if not in Telegram */}
+        {!isTelegramAvailable && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 animate-fade-in-up">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-6 h-6 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">{labels.telegramRequired}</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {labels.telegramRequiredDesc}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Master Toggle */}
         <div className="bg-card rounded-2xl p-5 shadow-card border border-border/50 animate-fade-in-up">
           <div className="flex items-center justify-between">
@@ -237,9 +311,9 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
                 <Bell className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h2 className="font-semibold text-foreground">Напоминания от Anil</h2>
+                <h2 className="font-semibold text-foreground">{labels.masterTitle}</h2>
                 <p className="text-sm text-muted-foreground">
-                  Получать сообщения в Telegram
+                  {labels.masterDesc}
                 </p>
               </div>
             </div>
@@ -267,11 +341,11 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
             >
               <div className="flex items-center gap-3 mb-2">
                 <Clock className="w-5 h-5 text-muted-foreground" />
-                <span className="font-medium text-foreground">Часовой пояс</span>
+                <span className="font-medium text-foreground">{labels.timezone}</span>
               </div>
               <p className="text-sm text-primary font-medium">{timezone}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Определён автоматически
+                {labels.timezoneAuto}
               </p>
             </div>
 
@@ -279,7 +353,7 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
             <div className="space-y-4">
               <div className="animate-fade-in-up" style={{ animationDelay: "100ms" }}>
                 <TimeSlotSection
-                  title="Утро"
+                  title={labels.morning}
                   icon={Sunrise}
                   iconColor="text-amber-500"
                   bgColor="bg-amber-500/10"
@@ -291,7 +365,7 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
 
               <div className="animate-fade-in-up" style={{ animationDelay: "150ms" }}>
                 <TimeSlotSection
-                  title="День"
+                  title={labels.day}
                   icon={Sun}
                   iconColor="text-yellow-500"
                   bgColor="bg-yellow-500/10"
@@ -303,7 +377,7 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
 
               <div className="animate-fade-in-up" style={{ animationDelay: "200ms" }}>
                 <TimeSlotSection
-                  title="Вечер"
+                  title={labels.evening}
                   icon={Moon}
                   iconColor="text-indigo-400"
                   bgColor="bg-indigo-400/10"
@@ -319,7 +393,7 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
         {/* Save Button */}
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !isTelegramAvailable}
           className="w-full py-4 bg-primary text-primary-foreground rounded-2xl font-semibold shadow-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 animate-fade-in-up"
           style={{ animationDelay: "250ms" }}
         >
@@ -328,7 +402,7 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
           ) : (
             <>
               <Check className="w-5 h-5" />
-              Сохранить
+              {labels.save}
             </>
           )}
         </button>

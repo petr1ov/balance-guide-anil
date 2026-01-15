@@ -1,11 +1,5 @@
 import { useState, useEffect } from "react";
-
-interface BalanceScores {
-  spirituality: number;
-  relationships: number;
-  health: number;
-  finance: number;
-}
+import { BalanceScores, DEFAULT_SCORES } from "@/types/balance";
 
 interface BalanceWheelProps {
   scores: BalanceScores;
@@ -13,22 +7,15 @@ interface BalanceWheelProps {
 }
 
 const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
-  const [animatedScores, setAnimatedScores] = useState<BalanceScores>({
-    spirituality: 0,
-    relationships: 0,
-    health: 0,
-    finance: 0,
-  });
+  const [animatedScores, setAnimatedScores] = useState<BalanceScores>(DEFAULT_SCORES);
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Trigger entrance animation
     const timer = setTimeout(() => setIsVisible(true), 100);
     return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    // Animate scores counting up
     const duration = 1200;
     const steps = 30;
     const interval = duration / steps;
@@ -37,13 +24,16 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
     const timer = setInterval(() => {
       step++;
       const progress = step / steps;
-      const easeOut = 1 - Math.pow(1 - progress, 3); // Ease out cubic
+      const easeOut = 1 - Math.pow(1 - progress, 3);
 
       setAnimatedScores({
         spirituality: Math.round(scores.spirituality * easeOut),
         relationships: Math.round(scores.relationships * easeOut),
         health: Math.round(scores.health * easeOut),
         finance: Math.round(scores.finance * easeOut),
+        career: Math.round(scores.career * easeOut),
+        rest: Math.round(scores.rest * easeOut),
+        environment: Math.round(scores.environment * easeOut),
       });
 
       if (step >= steps) clearInterval(timer);
@@ -56,10 +46,10 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
   const center = size / 2;
   const outerRadius = size / 2 - 24;
   const innerRadius = 40;
+  const sectorAngle = 360 / 7; // 7 sectors
 
-  // Calculate filled sector based on score (0-10 → 0-90 degrees fill)
   const createFilledSectorPath = (startAngle: number, score: number) => {
-    const fillAngle = (score / 10) * 90; // Each sector is 90 degrees
+    const fillAngle = (score / 10) * sectorAngle;
     const endAngle = startAngle + fillAngle;
     
     if (score === 0) return "";
@@ -89,47 +79,63 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
     };
   };
 
-  // Colors from the visual guide
+  // 7 sectors with colors
   const sectors = [
     { 
       key: "spirituality" as const, 
-      label: "Духовность", 
       startAngle: -90, 
-      endAngle: 0, 
-      midAngle: -45, 
+      midAngle: -90 + sectorAngle / 2, 
       gradientStart: "#B9B7FF",
       gradientEnd: "#8B8AF8",
       icon: "🧘"
     },
     { 
       key: "relationships" as const, 
-      label: "Отношения", 
-      startAngle: 0, 
-      endAngle: 90, 
-      midAngle: 45, 
+      startAngle: -90 + sectorAngle, 
+      midAngle: -90 + sectorAngle * 1.5, 
       gradientStart: "#FFB3B3",
       gradientEnd: "#FF8A8A",
       icon: "❤️"
     },
     { 
-      key: "finance" as const, 
-      label: "Финансы", 
-      startAngle: 90, 
-      endAngle: 180, 
-      midAngle: 135, 
-      gradientStart: "#FFE3A1",
-      gradientEnd: "#F4C76C",
-      icon: "💼"
-    },
-    { 
       key: "health" as const, 
-      label: "Здоровье", 
-      startAngle: 180, 
-      endAngle: 270, 
-      midAngle: 225, 
+      startAngle: -90 + sectorAngle * 2, 
+      midAngle: -90 + sectorAngle * 2.5, 
       gradientStart: "#B4EBD0",
       gradientEnd: "#7ED7A7",
       icon: "💪"
+    },
+    { 
+      key: "finance" as const, 
+      startAngle: -90 + sectorAngle * 3, 
+      midAngle: -90 + sectorAngle * 3.5, 
+      gradientStart: "#FFE3A1",
+      gradientEnd: "#F4C76C",
+      icon: "💰"
+    },
+    { 
+      key: "career" as const, 
+      startAngle: -90 + sectorAngle * 4, 
+      midAngle: -90 + sectorAngle * 4.5, 
+      gradientStart: "#A7D8F0",
+      gradientEnd: "#5BBAE5",
+      icon: "💼"
+    },
+    { 
+      key: "rest" as const, 
+      startAngle: -90 + sectorAngle * 5, 
+      midAngle: -90 + sectorAngle * 5.5, 
+      gradientStart: "#FFDAB9",
+      gradientEnd: "#FFB27F",
+      icon: "😊"
+    },
+    { 
+      key: "environment" as const, 
+      startAngle: -90 + sectorAngle * 6, 
+      midAngle: -90 + sectorAngle * 6.5, 
+      gradientStart: "#E0BBE4",
+      gradientEnd: "#C89BD8",
+      icon: "🌍"
     },
   ];
 
@@ -139,7 +145,6 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
         isVisible ? "opacity-100 scale-100" : "opacity-0 scale-90"
       }`}
     >
-      
       <svg
         width={size}
         height={size}
@@ -150,7 +155,6 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
         }}
       >
         <defs>
-          {/* Radial gradients for each sector */}
           {sectors.map((sector) => (
             <radialGradient 
               key={`grad-${sector.key}`} 
@@ -166,7 +170,6 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
             </radialGradient>
           ))}
           
-          {/* Inner shadow filter for depth */}
           <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur" />
             <feOffset dx="0" dy="2" result="offsetBlur" />
@@ -176,7 +179,6 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
             <feComposite in2="SourceGraphic" operator="over" />
           </filter>
 
-          {/* Center shadow */}
           <filter id="centerShadow" x="-50%" y="-50%" width="200%" height="200%">
             <feDropShadow dx="0" dy="2" stdDeviation="4" floodOpacity="0.12"/>
           </filter>
@@ -194,7 +196,7 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
               key={sector.key}
               style={{
                 opacity: isVisible ? 1 : 0,
-                transition: `opacity 0.5s ease-out ${index * 0.15}s`,
+                transition: `opacity 0.5s ease-out ${index * 0.1}s`,
               }}
             >
               <path
@@ -213,7 +215,7 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
           );
         })}
 
-        {/* Center circle with depth effect */}
+        {/* Center circle */}
         <circle
           cx={center}
           cy={center}
@@ -225,7 +227,6 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
           }`}
         />
         
-        {/* Inner highlight for center */}
         <circle
           cx={center}
           cy={center}
@@ -236,7 +237,7 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
           }`}
         />
 
-        {/* Score numbers inside sectors - positioned closer to center */}
+        {/* Score numbers */}
         {sectors.map((sector, index) => {
           const scorePos = getPosition(sector.midAngle, 75);
           const score = animatedScores[sector.key];
@@ -246,16 +247,15 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
               key={`score-${sector.key}`}
               style={{
                 opacity: isVisible ? 1 : 0,
-                transition: `opacity 0.5s ease-out ${0.5 + index * 0.1}s`,
+                transition: `opacity 0.5s ease-out ${0.5 + index * 0.08}s`,
               }}
             >
-              {/* Score number */}
               <text
                 x={scorePos.x}
-                y={scorePos.y + 6}
+                y={scorePos.y + 5}
                 textAnchor="middle"
                 fill="white"
-                fontSize="22"
+                fontSize="18"
                 fontWeight="700"
                 fontFamily="Nunito, system-ui, sans-serif"
                 style={{
@@ -268,7 +268,7 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
           );
         })}
 
-        {/* Icons - positioned on the outer edge */}
+        {/* Icons */}
         {sectors.map((sector, index) => {
           const iconPos = getPosition(sector.midAngle, 115);
           
@@ -276,39 +276,15 @@ const BalanceWheel = ({ scores, onSectorClick }: BalanceWheelProps) => {
             <text
               key={`icon-${sector.key}`}
               x={iconPos.x}
-              y={iconPos.y + 5}
+              y={iconPos.y + 4}
               textAnchor="middle"
-              fontSize="20"
+              fontSize="16"
               style={{
                 opacity: isVisible ? 1 : 0,
-                transition: `opacity 0.5s ease-out ${0.7 + index * 0.1}s`,
+                transition: `opacity 0.5s ease-out ${0.6 + index * 0.08}s`,
               }}
             >
               {sector.icon}
-            </text>
-          );
-        })}
-
-        {/* Labels outside the wheel */}
-        {sectors.map((sector, index) => {
-          const labelPos = getPosition(sector.midAngle, 145);
-          
-          return (
-            <text
-              key={`label-${sector.key}`}
-              x={labelPos.x}
-              y={labelPos.y + 4}
-              textAnchor="middle"
-              fill="#5B6472"
-              fontSize="11"
-              fontWeight="600"
-              fontFamily="Inter, system-ui, sans-serif"
-              style={{
-                opacity: isVisible ? 1 : 0,
-                transition: `opacity 0.5s ease-out ${0.8 + index * 0.1}s`,
-              }}
-            >
-              {sector.label}
             </text>
           );
         })}
