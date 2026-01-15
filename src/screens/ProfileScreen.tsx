@@ -1,10 +1,12 @@
 import { Settings, RefreshCw, Target, TrendingUp, Globe, Bell } from "lucide-react";
 import { useTranslation, Language } from "@/lib/i18n";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ProfileScreenProps {
   userName: string;
   focusArea?: string;
   language: Language;
+  avatarUrl?: string;
   onReassessBalance: () => void;
   onOpenReminders: () => void;
   onOpenLanguage: () => void;
@@ -21,6 +23,7 @@ const ProfileScreen = ({
   userName, 
   focusArea, 
   language,
+  avatarUrl,
   onReassessBalance, 
   onOpenReminders,
   onOpenLanguage,
@@ -42,9 +45,12 @@ const ProfileScreen = ({
         {/* User Card */}
         <div className="bg-card rounded-2xl p-6 shadow-card border border-border/50 animate-fade-in-up">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-spirituality to-relationships flex items-center justify-center text-2xl font-bold text-white">
-              {userName.charAt(0).toUpperCase()}
-            </div>
+            <Avatar className="w-16 h-16 border-2 border-primary/20">
+              <AvatarImage src={avatarUrl} alt={userName} />
+              <AvatarFallback className="bg-gradient-to-br from-spirituality to-relationships text-2xl font-bold text-white">
+                {userName.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
             <div>
               <h2 className="text-xl font-semibold text-foreground">{userName}</h2>
               <p className="text-sm text-muted-foreground">{t("profile.member")}</p>

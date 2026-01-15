@@ -30,9 +30,16 @@ const Index = () => {
   const [selectedSphere, setSelectedSphere] = useState<string | null>(null);
   const [sphereDetails, setSphereDetails] = useState<Record<string, SphereDetail>>({});
   const [focusArea, setFocusArea] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string>("Пользователь");
+  const [userName, setUserName] = useState<string>(telegramUser?.first_name || "Пользователь");
   
   const [scores, setScores] = useState<BalanceScores>(DEFAULT_SCORES);
+
+  // Set userName from telegramUser if available
+  useEffect(() => {
+    if (telegramUser?.first_name && userName === "Пользователь") {
+      setUserName(telegramUser.first_name);
+    }
+  }, [telegramUser, userName]);
 
   // Fetch user data on mount
   useEffect(() => {
@@ -49,8 +56,6 @@ const Index = () => {
 
         if (profile?.name) {
           setUserName(profile.name);
-        } else if (telegramUser?.first_name) {
-          setUserName(telegramUser.first_name);
         }
 
         // Fetch balance scores
@@ -218,6 +223,7 @@ const Index = () => {
             userName={userName}
             focusArea={focusArea ?? undefined}
             language={language as Language}
+            avatarUrl={telegramUser?.photo_url}
             onReassessBalance={handleReassessBalance}
             onOpenReminders={handleOpenReminders}
             onOpenLanguage={handleOpenLanguage}

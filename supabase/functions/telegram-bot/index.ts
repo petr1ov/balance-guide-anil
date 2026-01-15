@@ -692,9 +692,10 @@ serve(async (req) => {
 
       const messages = MESSAGES[lang] || MESSAGES.en;
 
+      // Send confirmation message with inline button (not persistent keyboard)
       await sendMessage(chatId, messages.languageSet, {
         reply_markup: {
-          keyboard: [
+          inline_keyboard: [
             [
               {
                 text: messages.openApp,
@@ -702,8 +703,12 @@ serve(async (req) => {
               },
             ],
           ],
-          resize_keyboard: true,
         },
+      });
+
+      // Remove any persistent keyboard that might exist
+      await sendMessage(chatId, "✨", {
+        reply_markup: { remove_keyboard: true },
       });
 
       return new Response(JSON.stringify({ ok: true }), {
