@@ -107,29 +107,23 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
         return;
       }
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-reminder`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            initData,
-            timezone,
-            enabled,
-            morningTime,
-            dayTime,
-            eveningTime,
-          }),
-        }
-      );
+      const { data, error } = await supabase.functions.invoke("save-reminder", {
+        body: {
+          initData,
+          timezone,
+          enabled,
+          morningTime,
+          dayTime,
+          eveningTime,
+        },
+      });
 
-      const result = await response.json();
+      if (error) {
+        throw error;
+      }
 
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to save");
+      if (!data?.ok) {
+        throw new Error((data as any)?.error || "Failed to save");
       }
 
       toast({
