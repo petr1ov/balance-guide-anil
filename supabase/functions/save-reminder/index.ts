@@ -159,7 +159,7 @@ serve(async (req) => {
 
     if (profileError || !profile) {
       console.log("Profile not found for verified telegram_id:", telegramId);
-      
+
       // Save with telegram_id only (for users not yet fully authenticated)
       const { error: upsertError } = await supabaseAdmin
         .from("reminders")
@@ -182,7 +182,7 @@ serve(async (req) => {
         throw upsertError;
       }
     } else {
-      // Profile found, save with user_id
+      // Profile found: still upsert by telegram_id (unique) and attach user_id
       const { error: upsertError } = await supabaseAdmin
         .from("reminders")
         .upsert(
@@ -196,7 +196,7 @@ serve(async (req) => {
             evening_time: eveningTime || null,
             updated_at: new Date().toISOString(),
           },
-          { onConflict: "user_id" }
+          { onConflict: "telegram_id" }
         );
 
       if (upsertError) {

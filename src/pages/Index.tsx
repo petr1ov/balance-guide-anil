@@ -10,6 +10,7 @@ import ProgressHistoryScreen from "@/screens/ProgressHistoryScreen";
 import { useTelegramAuth } from "@/contexts/TelegramAuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Language, setCurrentLanguage } from "@/lib/i18n";
+import { openTelegramBot } from "@/lib/telegram";
 import { BalanceScores, DEFAULT_SCORES, SphereKey } from "@/types/balance";
 
 type TabType = "home" | "balance" | "profile";
@@ -122,11 +123,12 @@ const Index = () => {
   };
 
   const handleUpdateScores = () => {
-    console.log("To update scores, chat with Anil in Telegram");
+    // Empty state CTA (+): open Telegram bot to start the assessment with Anil
+    openTelegramBot("balance");
   };
 
   const handleReassessBalance = () => {
-    console.log("To reassess balance, chat with Anil in Telegram");
+    openTelegramBot("balance");
   };
 
   const handleOpenReminders = () => {
