@@ -10,16 +10,10 @@ import ProgressHistoryScreen from "@/screens/ProgressHistoryScreen";
 import { useTelegramAuth } from "@/contexts/TelegramAuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Language, setCurrentLanguage } from "@/lib/i18n";
+import { BalanceScores, DEFAULT_SCORES, SphereKey } from "@/types/balance";
 
 type TabType = "home" | "balance" | "profile";
 type SubScreen = "none" | "reminders" | "sphereDetails" | "language" | "history";
-
-interface BalanceScores {
-  spirituality: number;
-  relationships: number;
-  health: number;
-  finance: number;
-}
 
 interface SphereDetail {
   sphere: string;
@@ -38,12 +32,7 @@ const Index = () => {
   const [focusArea, setFocusArea] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("Пользователь");
   
-  const [scores, setScores] = useState<BalanceScores>({
-    spirituality: 0,
-    relationships: 0,
-    health: 0,
-    finance: 0,
-  });
+  const [scores, setScores] = useState<BalanceScores>(DEFAULT_SCORES);
 
   // Fetch user data on mount
   useEffect(() => {
@@ -79,6 +68,9 @@ const Index = () => {
             relationships: balanceData.relationships ?? 0,
             health: balanceData.health ?? 0,
             finance: balanceData.finance ?? 0,
+            career: balanceData.career ?? 0,
+            rest: balanceData.rest ?? 0,
+            environment: balanceData.environment ?? 0,
           });
         }
 
@@ -113,6 +105,17 @@ const Index = () => {
             };
           });
           setSphereDetails(details);
+          
+          // Also update scores from sphere_details if available
+          const scoresFromDetails: Partial<BalanceScores> = {};
+          sphereData.forEach((s: { sphere: string; score: number | null }) => {
+            if (s.sphere in DEFAULT_SCORES && s.score !== null) {
+              scoresFromDetails[s.sphere as SphereKey] = s.score;
+            }
+          });
+          if (Object.keys(scoresFromDetails).length > 0) {
+            setScores(prev => ({ ...prev, ...scoresFromDetails }));
+          }
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -122,13 +125,12 @@ const Index = () => {
     fetchUserData();
   }, [user, telegramUser]);
 
-  const handleSectorClick = (sector: keyof BalanceScores) => {
+  const handleSectorClick = (sector: SphereKey) => {
     setSelectedSphere(sector);
     setSubScreen("sphereDetails");
   };
 
   const handleUpdateScores = () => {
-    // Could show a message to use Telegram chat
     console.log("To update scores, chat with Anil in Telegram");
   };
 
@@ -157,7 +159,6 @@ const Index = () => {
     setLanguage(lang);
     setCurrentLanguage(lang);
     
-    // Update profile language in database
     if (user) {
       await supabase
         .from("profiles")
@@ -169,7 +170,6 @@ const Index = () => {
   };
 
   const renderScreen = () => {
-    // Handle sub-screens first
     if (subScreen === "reminders") {
       return <ReminderSettingsScreen onBack={handleBackFromSubScreen} />;
     }
@@ -177,7 +177,7 @@ const Index = () => {
     if (subScreen === "sphereDetails" && selectedSphere) {
       const detail = sphereDetails[selectedSphere] || {
         sphere: selectedSphere,
-        score: scores[selectedSphere as keyof BalanceScores] ?? 0,
+        score: scores[selectedSphere as SphereKey] ?? 0,
       };
       return (
         <SphereDetailsScreen
@@ -213,6 +213,7 @@ const Index = () => {
         return (
           <HomeScreen
             scores={scores}
+            language={language as Language}
             onUpdateScores={handleUpdateScores}
             onSectorClick={handleSectorClick}
           />
@@ -221,6 +222,7 @@ const Index = () => {
         return (
           <BalanceScreen
             scores={scores}
+            language={language as Language}
             onSectorClick={handleSectorClick}
           />
         );
