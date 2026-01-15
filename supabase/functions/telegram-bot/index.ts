@@ -333,12 +333,22 @@ async function getChatHistory(supabase: any, telegramId: string, limit: number =
 
 // deno-lint-ignore no-explicit-any
 async function saveChatMessage(supabase: any, telegramId: string, role: string, content: string) {
+  // chat_messages.user_id is NOT NULL; resolve it from profiles by telegram_id
+  const profile = await getUserProfile(supabase, telegramId);
+  const userId = profile?.id;
+
+  if (!userId) {
+    console.warn("Skipping chat message save: no profile for telegram_id", telegramId);
+    return;
+  }
+
   const { error } = await supabase.from("chat_messages").insert({
+    user_id: userId,
     telegram_id: telegramId,
     role,
     content,
   });
-  
+
   if (error) {
     console.error("Error saving chat message:", error);
   }
@@ -917,19 +927,31 @@ async function processUserMessage(
   const userId = profile.id;
   console.log(`Processing message in stage: ${currentState.stage}, sphere index: ${currentState.current_sphere_index}`);
 
-  // If sphere count changed (we now ask only 4 spheres), normalize indices to avoid getting stuck
+  // If sphere count changed (we now ask only 4 spheres), normalize indices to avoid loops/corrupted mapping
   if (currentState.stage === STAGES.SCORING && currentState.current_sphere_index >= SPHERES.length) {
+    console.log("Out-of-range scoring index detected; switching to POINT_A");
     currentState.stage = STAGES.POINT_A;
+    currentState.current_sphere_index = 0;
     currentState.point_a_index = 0;
+    currentState.point_b_index = 0;
     await updateConversationState(supabase, telegramId, currentState);
+
+    // If user sent a number here, it would be incorrectly saved as Point A (we were already past scoring)
+    if (parseScore(userText) !== null) {
+      return;
+    }
   }
+
   if (currentState.stage === STAGES.POINT_A && (currentState.point_a_index || 0) >= SPHERES.length) {
     currentState.stage = STAGES.DAILY;
     await updateConversationState(supabase, telegramId, currentState);
+    return;
   }
+
   if (currentState.stage === STAGES.POINT_B && (currentState.point_b_index || 0) >= SPHERES.length) {
     currentState.stage = STAGES.DAILY;
     await updateConversationState(supabase, telegramId, currentState);
+    return;
   }
 
   // Handle scoring stage
@@ -955,7 +977,9 @@ async function processUserMessage(
         // If all spheres scored, prepare for Point A
         if (currentState.current_sphere_index >= SPHERES.length) {
           currentState.stage = STAGES.POINT_A;
+          currentState.current_sphere_index = 0;
           currentState.point_a_index = 0;
+          currentState.point_b_index = 0;
         }
         
         await updateConversationState(supabase, telegramId, currentState);
@@ -1311,13 +1335,9 @@ serve(async (req) => {
         }
       );
 
-      // Update state based on AI response
-      const updatedState = await getConversationState(supabaseAdmin, telegramId);
-      const newState = detectStageFromAIResponse(aiResponse, updatedState);
-      if (newState.stage !== updatedState.stage) {
-        console.log(`Stage transition: ${updatedState.stage} -> ${newState.stage}`);
-        await updateConversationState(supabaseAdmin, telegramId, newState);
-      }
+      // IMPORTANT: Do NOT infer/override stage from AI text.
+      // The stage is managed deterministically by processUserMessage() to avoid regressions like POINT_B -> SCORING.
+      // (AI can phrase things in a way that matches regexes, which previously caused loops.)
 
       // Save assistant message
       await saveChatMessage(supabaseAdmin, telegramId, "assistant", aiResponse);
@@ -1401,13 +1421,9 @@ serve(async (req) => {
           }
         );
 
-        // Update state based on AI response
-        const updatedState = await getConversationState(supabaseAdmin, telegramId);
-        const newState = detectStageFromAIResponse(aiResponse, updatedState);
-        if (newState.stage !== updatedState.stage) {
-          console.log(`Stage transition: ${updatedState.stage} -> ${newState.stage}`);
-          await updateConversationState(supabaseAdmin, telegramId, newState);
-        }
+        // IMPORTANT: Do NOT infer/override stage from AI text.
+        // The stage is managed deterministically by processUserMessage() to avoid regressions like POINT_B -> SCORING.
+        // (AI can phrase things in a way that matches regexes, which previously caused loops.)
 
         // Save assistant message
         await saveChatMessage(supabaseAdmin, telegramId, "assistant", aiResponse);
