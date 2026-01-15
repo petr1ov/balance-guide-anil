@@ -1,4 +1,4 @@
-import { Sparkles, Heart, Leaf, Coins, ChevronRight, Briefcase, Smile, Users } from "lucide-react";
+import { Sparkles, Heart, Leaf, Coins, ChevronRight } from "lucide-react";
 import BalanceWheel from "@/components/BalanceWheel";
 import { BalanceScores, SphereKey } from "@/types/balance";
 import { t, Language } from "@/lib/i18n";
@@ -34,24 +34,6 @@ const BalanceScreen = ({ scores, language, onSectorClick }: BalanceScreenProps) 
       icon: Coins,
       color: "bg-finance/20",
       iconColor: "text-finance-dark",
-    },
-    {
-      key: "career" as const,
-      icon: Briefcase,
-      color: "bg-primary/20",
-      iconColor: "text-primary",
-    },
-    {
-      key: "rest" as const,
-      icon: Smile,
-      color: "bg-finance/20",
-      iconColor: "text-finance-dark",
-    },
-    {
-      key: "environment" as const,
-      icon: Users,
-      color: "bg-relationships/20",
-      iconColor: "text-relationships-dark",
     },
   ];
 

@@ -68,9 +68,6 @@ const Index = () => {
             relationships: balanceData.relationships ?? 0,
             health: balanceData.health ?? 0,
             finance: balanceData.finance ?? 0,
-            career: balanceData.career ?? 0,
-            rest: balanceData.rest ?? 0,
-            environment: balanceData.environment ?? 0,
           });
         }
 
@@ -105,17 +102,6 @@ const Index = () => {
             };
           });
           setSphereDetails(details);
-          
-          // Also update scores from sphere_details if available
-          const scoresFromDetails: Partial<BalanceScores> = {};
-          sphereData.forEach((s: { sphere: string; score: number | null }) => {
-            if (s.sphere in DEFAULT_SCORES && s.score !== null) {
-              scoresFromDetails[s.sphere as SphereKey] = s.score;
-            }
-          });
-          if (Object.keys(scoresFromDetails).length > 0) {
-            setScores(prev => ({ ...prev, ...scoresFromDetails }));
-          }
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
