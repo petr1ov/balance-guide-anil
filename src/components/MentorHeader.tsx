@@ -1,4 +1,7 @@
-import { Menu } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
+import { useTelegramAuth } from "@/contexts/TelegramAuthContext";
+import { toast } from "@/hooks/use-toast";
 import anilAvatar from "@/assets/anil-avatar.png";
 
 interface MentorHeaderProps {
@@ -6,16 +9,34 @@ interface MentorHeaderProps {
 }
 
 const MentorHeader = ({ onMenuClick }: MentorHeaderProps) => {
+  const navigate = useNavigate();
+  const { telegramUser } = useTelegramAuth();
+  const telegramId = telegramUser ? String(telegramUser.id) : null;
+  const { isAdmin } = useAdminCheck(telegramId);
+
+  const handleOmClick = () => {
+    if (isAdmin) {
+      navigate('/admin');
+    } else {
+      toast({
+        title: "Недоступно",
+        description: "У вас нет доступа к этому разделу",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <header className="flex items-center justify-between px-6 py-4 safe-top animate-fade-in">
       <h1 className="text-2xl font-display font-bold text-foreground tracking-tight">
         Balance Mentor
       </h1>
       <button
-        onClick={onMenuClick}
-        className="p-2 rounded-xl hover:bg-secondary transition-colors"
+        onClick={handleOmClick}
+        className="p-2 rounded-xl hover:bg-secondary transition-colors text-xl"
+        title="ॐ"
       >
-        <Menu className="w-6 h-6 text-muted-foreground" />
+        ॐ
       </button>
     </header>
   );
