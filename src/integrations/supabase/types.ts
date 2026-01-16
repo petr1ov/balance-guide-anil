@@ -481,6 +481,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin_telegram: { Args: { _telegram_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
