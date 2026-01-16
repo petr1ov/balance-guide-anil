@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 // Admin telegram IDs (from @petrfirstov and @ira_niroula)
-const ADMIN_TELEGRAM_IDS = ['6877076930', '1066610296'];
+const ADMIN_TELEGRAM_IDS = ['189415023', '828936535'];
 
 interface UseAdminCheckResult {
   isAdmin: boolean;
