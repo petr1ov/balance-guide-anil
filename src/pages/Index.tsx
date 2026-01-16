@@ -7,6 +7,7 @@ import ReminderSettingsScreen from "@/screens/ReminderSettingsScreen";
 import SphereDetailsScreen from "@/screens/SphereDetailsScreen";
 import LanguageScreen from "@/screens/LanguageScreen";
 import ProgressHistoryScreen from "@/screens/ProgressHistoryScreen";
+import OnboardingScreen from "@/screens/OnboardingScreen";
 import { useTelegramAuth } from "@/contexts/TelegramAuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Language, setCurrentLanguage } from "@/lib/i18n";
@@ -14,7 +15,7 @@ import { openTelegramBot } from "@/lib/telegram";
 import { BalanceScores, DEFAULT_SCORES, SphereKey } from "@/types/balance";
 
 type TabType = "home" | "balance" | "profile";
-type SubScreen = "none" | "reminders" | "sphereDetails" | "language" | "history";
+type SubScreen = "none" | "reminders" | "sphereDetails" | "language" | "history" | "onboarding";
 
 interface SphereDetail {
   sphere: string;
@@ -35,6 +36,7 @@ const Index = () => {
   const [focusArea, setFocusArea] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>(telegramUser?.first_name || "Пользователь");
   const [userMode, setUserMode] = useState<"fast" | "jyotish">("fast");
+  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
   
   const [scores, setScores] = useState<BalanceScores>(DEFAULT_SCORES);
 
@@ -51,18 +53,25 @@ const Index = () => {
       if (!user) return;
 
       try {
-        // Fetch profile
+        // Fetch profile including onboarding_completed
         const { data: profile } = await supabase
           .from("profiles")
-          .select("name, language, mode")
+          .select("name, language, mode, onboarding_completed")
           .eq("id", user.id)
           .maybeSingle();
 
-        if (profile?.name) {
-          setUserName(profile.name);
-        }
-        if (profile?.mode) {
-          setUserMode(profile.mode as "fast" | "jyotish");
+        if (profile) {
+          if (profile.name) {
+            setUserName(profile.name);
+          }
+          if (profile.mode) {
+            setUserMode(profile.mode as "fast" | "jyotish");
+          }
+          // Check if onboarding is completed
+          setOnboardingCompleted(profile.onboarding_completed ?? false);
+        } else {
+          // No profile yet, need onboarding
+          setOnboardingCompleted(false);
         }
 
         // Fetch balance scores
@@ -139,12 +148,25 @@ const Index = () => {
   };
 
   const handleUpdateScores = () => {
-    // Empty state CTA (+): open Telegram bot to start the assessment with Anil
-    openTelegramBot("balance");
+    // If onboarding not done, show onboarding screen in Mini App
+    if (!onboardingCompleted) {
+      setSubScreen("onboarding");
+    } else {
+      // Already onboarded, open Telegram bot for reassessment
+      openTelegramBot("balance");
+    }
   };
 
   const handleReassessBalance = () => {
-    openTelegramBot("balance");
+    // For reassessment, start onboarding flow again in Mini App
+    setSubScreen("onboarding");
+  };
+
+  const handleOnboardingComplete = () => {
+    setOnboardingCompleted(true);
+    setSubScreen("none");
+    // Refresh data
+    window.location.reload();
   };
 
   const handleOpenReminders = () => {
@@ -214,6 +236,34 @@ const Index = () => {
           language={language as Language}
           onBack={handleBackFromSubScreen}
         />
+      );
+    }
+
+    if (subScreen === "onboarding") {
+      return (
+        <OnboardingScreen
+          language={language as Language}
+          onComplete={handleOnboardingComplete}
+        />
+      );
+    }
+
+    // If onboarding not completed, show onboarding screen automatically
+    if (onboardingCompleted === false) {
+      return (
+        <OnboardingScreen
+          language={language as Language}
+          onComplete={handleOnboardingComplete}
+        />
+      );
+    }
+
+    // Still loading onboarding status
+    if (onboardingCompleted === null) {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="animate-pulse text-muted-foreground">Loading...</div>
+        </div>
       );
     }
 
