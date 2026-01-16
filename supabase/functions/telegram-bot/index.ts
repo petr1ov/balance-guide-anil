@@ -1003,130 +1003,7 @@ async function processUserMessage(
   }
 }
 
-// Handle mode selection and jyotish flow
-// deno-lint-ignore no-explicit-any
-async function handleModeAndBirthFlow(
-  supabase: any,
-  chatId: number,
-  telegramId: string,
-  userText: string,
-  currentState: ConversationState,
-  userLanguage: string
-): Promise<boolean> {
-  const msgs = MESSAGES[userLanguage] || MESSAGES.en;
-  
-  // Handle mode selection
-  if (currentState.stage === STAGES.SELECT_MODE) {
-    const mode = parseModeSelection(userText);
-    
-    if (mode === "fast") {
-      await updateProfileMode(supabase, telegramId, "fast");
-      currentState.stage = STAGES.SCORING;
-      currentState.current_sphere_index = 0;
-      await updateConversationState(supabase, telegramId, currentState);
-      await sendMessage(chatId, msgs.fastModeSelected);
-      return true;
-    } else if (mode === "jyotish") {
-      await updateProfileMode(supabase, telegramId, "jyotish");
-      currentState.stage = STAGES.BIRTH_DATE;
-      await updateConversationState(supabase, telegramId, currentState);
-      await sendMessage(chatId, msgs.jyotishModeSelected);
-      await sendMessage(chatId, msgs.askBirthDate);
-      return true;
-    }
-    // If invalid selection, re-ask
-    await sendMessage(chatId, msgs.modeSelection);
-    return true;
-  }
-  
-  // Handle birth date
-  if (currentState.stage === STAGES.BIRTH_DATE) {
-    const birthDate = parseBirthDate(userText);
-    if (birthDate) {
-      currentState.birth_date = birthDate;
-      await updateProfileBirthData(supabase, telegramId, { birth_date: birthDate });
-      currentState.stage = STAGES.BIRTH_TIME;
-      await updateConversationState(supabase, telegramId, currentState);
-      await sendMessage(chatId, msgs.askBirthTime);
-    } else {
-      await sendMessage(chatId, msgs.invalidDate);
-    }
-    return true;
-  }
-  
-  // Handle birth time
-  if (currentState.stage === STAGES.BIRTH_TIME) {
-    const birthTime = parseBirthTime(userText);
-    currentState.birth_time = birthTime || userText;
-    await updateProfileBirthData(supabase, telegramId, { birth_time: birthTime || userText });
-    currentState.stage = STAGES.BIRTH_COUNTRY;
-    await updateConversationState(supabase, telegramId, currentState);
-    await sendMessage(chatId, msgs.askBirthCountry);
-    return true;
-  }
-  
-  // Handle birth country
-  if (currentState.stage === STAGES.BIRTH_COUNTRY) {
-    const country = userText.replace(/^🎙\s*/, "").trim();
-    currentState.birth_country = country;
-    await updateProfileBirthData(supabase, telegramId, { birth_country: country });
-    currentState.stage = STAGES.BIRTH_CITY;
-    await updateConversationState(supabase, telegramId, currentState);
-    await sendMessage(chatId, msgs.askBirthCity);
-    return true;
-  }
-  
-  // Handle birth city
-  if (currentState.stage === STAGES.BIRTH_CITY) {
-    const city = userText.replace(/^🎙\s*/, "").trim();
-    currentState.birth_city = city;
-    await updateProfileBirthData(supabase, telegramId, { birth_city: city });
-    
-    // Send typing action while calling MCP
-    await sendChatAction(chatId, "typing");
-    
-    // Call Jyotish MCP API to get astrological analysis
-    const birthData = {
-      date: currentState.birth_date || "",
-      time: currentState.birth_time || "12:00",
-      country: currentState.birth_country || "",
-      city: city
-    };
-    
-    console.log("Calling Jyotish MCP with birth data:", JSON.stringify(birthData));
-    
-    const jyotishSummary = await callJyotishMCP(birthData);
-    
-    if (jyotishSummary) {
-      // Save jyotish summary to profile
-      await updateProfileJyotishSummary(supabase, telegramId, jyotishSummary);
-      console.log("Jyotish summary saved to profile");
-      
-      // Also save sphere accents if available
-      const profile = await getUserProfile(supabase, telegramId);
-      if (profile && jyotishSummary.summary) {
-        const summary = jyotishSummary.summary as Record<string, unknown>;
-        const sphereAccents = summary.sphere_accents as Record<string, string> | undefined;
-        if (sphereAccents) {
-          for (const [sphere, accent] of Object.entries(sphereAccents)) {
-            await saveSphereDetails(supabase, profile.id, sphere, { jyotish_accent: accent });
-          }
-          console.log("Sphere accents saved from Jyotish data");
-        }
-      }
-    }
-    
-    // Move to scoring
-    currentState.stage = STAGES.SCORING;
-    currentState.current_sphere_index = 0;
-    await updateConversationState(supabase, telegramId, currentState);
-    
-    await sendMessage(chatId, msgs.birthDataComplete);
-    return true;
-  }
-  
-  return false; // Not handled by this function
-}
+// Mode selection and birth data now handled in Mini App
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -1240,9 +1117,6 @@ serve(async (req) => {
       await sendMessage(chatId, "✨", {
         reply_markup: { remove_keyboard: true },
       });
-      
-      // Now ask for mode selection
-      await sendMessage(chatId, messages.modeSelection);
 
       return new Response(JSON.stringify({ ok: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -1263,14 +1137,6 @@ serve(async (req) => {
       const userLanguage = await getUserLanguage(supabaseAdmin, telegramId);
       const currentState = await getConversationState(supabaseAdmin, telegramId);
       const profile = await getUserProfile(supabaseAdmin, telegramId);
-
-      // Handle mode selection and birth data collection
-      const handled = await handleModeAndBirthFlow(supabaseAdmin, chatId, telegramId, userText, currentState, userLanguage);
-      if (handled) {
-        return new Response(JSON.stringify({ ok: true }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
 
       // Process user message and save data based on stage
       await processUserMessage(supabaseAdmin, telegramId, userText, currentState, userLanguage);
@@ -1349,14 +1215,6 @@ serve(async (req) => {
         const userLanguage = await getUserLanguage(supabaseAdmin, telegramId);
         const currentState = await getConversationState(supabaseAdmin, telegramId);
         const profile = await getUserProfile(supabaseAdmin, telegramId);
-
-        // Handle mode selection and birth data collection
-        const handled = await handleModeAndBirthFlow(supabaseAdmin, chatId, telegramId, transcribedText, currentState, userLanguage);
-        if (handled) {
-          return new Response(JSON.stringify({ ok: true }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
 
         // Process transcribed message and save data based on stage
         await processUserMessage(supabaseAdmin, telegramId, transcribedText, currentState, userLanguage);
