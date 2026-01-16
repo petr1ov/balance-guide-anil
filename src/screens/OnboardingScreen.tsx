@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { useTelegramAuth } from "@/contexts/TelegramAuthContext";
 import { Language, t } from "@/lib/i18n";
 import { BalanceScores, SphereKey, SPHERE_KEYS } from "@/types/balance";
 import { trackEvent } from "@/lib/analytics";
-
+import { openTelegramBot } from "@/lib/telegram";
 interface OnboardingScreenProps {
   language: Language;
   onComplete: () => void;
@@ -51,98 +51,9 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
   
   const [isSaving, setIsSaving] = useState(false);
 
-  const translations: Record<Language, Record<string, string>> = {
-    ru: {
-      "onboarding.modeTitle": "Как мы пойдём дальше?",
-      "onboarding.fastTitle": "🎯 Быстрый старт",
-      "onboarding.fastDesc": "Без астрологии, сразу к делу",
-      "onboarding.jyotishTitle": "🔮 С Джйотиш",
-      "onboarding.jyotishDesc": "Глубокий анализ по натальной карте",
-      "onboarding.scoringTitle": "Оценка сфер жизни",
-      "onboarding.scoringSubtitle": "Насколько ты доволен этой сферой?",
-      "onboarding.birthDateTitle": "Дата рождения",
-      "onboarding.birthDatePlaceholder": "ДД.ММ.ГГГГ",
-      "onboarding.birthTimeTitle": "Время рождения",
-      "onboarding.birthTimePlaceholder": "ЧЧ:ММ или утро/день/вечер/ночь",
-      "onboarding.birthCountryTitle": "Страна рождения",
-      "onboarding.birthCountryPlaceholder": "Россия",
-      "onboarding.birthCityTitle": "Город рождения",
-      "onboarding.birthCityPlaceholder": "Москва",
-      "onboarding.next": "Далее",
-      "onboarding.back": "Назад",
-      "onboarding.save": "Сохранить и продолжить",
-      "onboarding.completeTitle": "Готово 🙌",
-      "onboarding.completeDesc": "Теперь Anil поможет тебе сформировать точку B",
-      "onboarding.returnToTelegram": "Вернуться в Telegram",
-      "sphere.spirituality": "Духовность",
-      "sphere.relationships": "Отношения",
-      "sphere.health": "Здоровье и энергия",
-      "sphere.finance": "Финансы",
-      "onboarding.step": "Шаг",
-      "onboarding.of": "из",
-    },
-    en: {
-      "onboarding.modeTitle": "How shall we proceed?",
-      "onboarding.fastTitle": "🎯 Quick Start",
-      "onboarding.fastDesc": "No astrology, straight to the point",
-      "onboarding.jyotishTitle": "🔮 With Jyotish",
-      "onboarding.jyotishDesc": "Deep analysis based on your birth chart",
-      "onboarding.scoringTitle": "Life Balance Assessment",
-      "onboarding.scoringSubtitle": "How satisfied are you with this area?",
-      "onboarding.birthDateTitle": "Birth Date",
-      "onboarding.birthDatePlaceholder": "DD.MM.YYYY",
-      "onboarding.birthTimeTitle": "Birth Time",
-      "onboarding.birthTimePlaceholder": "HH:MM or morning/afternoon/evening/night",
-      "onboarding.birthCountryTitle": "Birth Country",
-      "onboarding.birthCountryPlaceholder": "USA",
-      "onboarding.birthCityTitle": "Birth City",
-      "onboarding.birthCityPlaceholder": "New York",
-      "onboarding.next": "Next",
-      "onboarding.back": "Back",
-      "onboarding.save": "Save and Continue",
-      "onboarding.completeTitle": "All Done 🙌",
-      "onboarding.completeDesc": "Now Anil will help you define Point B",
-      "onboarding.returnToTelegram": "Return to Telegram",
-      "sphere.spirituality": "Spirituality",
-      "sphere.relationships": "Relationships",
-      "sphere.health": "Health & Energy",
-      "sphere.finance": "Finance",
-      "onboarding.step": "Step",
-      "onboarding.of": "of",
-    },
-    hi: {
-      "onboarding.modeTitle": "हम आगे कैसे बढ़ें?",
-      "onboarding.fastTitle": "🎯 त्वरित शुरुआत",
-      "onboarding.fastDesc": "ज्योतिष के बिना, सीधे बात पर",
-      "onboarding.jyotishTitle": "🔮 ज्योतिष के साथ",
-      "onboarding.jyotishDesc": "जन्म कुंडली पर गहन विश्लेषण",
-      "onboarding.scoringTitle": "जीवन संतुलन मूल्यांकन",
-      "onboarding.scoringSubtitle": "आप इस क्षेत्र से कितने संतुष्ट हैं?",
-      "onboarding.birthDateTitle": "जन्म तिथि",
-      "onboarding.birthDatePlaceholder": "DD.MM.YYYY",
-      "onboarding.birthTimeTitle": "जन्म समय",
-      "onboarding.birthTimePlaceholder": "HH:MM या सुबह/दोपहर/शाम/रात",
-      "onboarding.birthCountryTitle": "जन्म देश",
-      "onboarding.birthCountryPlaceholder": "भारत",
-      "onboarding.birthCityTitle": "जन्म शहर",
-      "onboarding.birthCityPlaceholder": "मुंबई",
-      "onboarding.next": "आगे",
-      "onboarding.back": "वापस",
-      "onboarding.save": "सहेजें और जारी रखें",
-      "onboarding.completeTitle": "हो गया 🙌",
-      "onboarding.completeDesc": "अब अनिल आपको बिंदु B परिभाषित करने में मदद करेगा",
-      "onboarding.returnToTelegram": "टेलीग्राम पर वापस जाएं",
-      "sphere.spirituality": "आध्यात्मिकता",
-      "sphere.relationships": "रिश्ते",
-      "sphere.health": "स्वास्थ्य और ऊर्जा",
-      "sphere.finance": "वित्त",
-      "onboarding.step": "चरण",
-      "onboarding.of": "का",
-    },
-  };
-
+  // Use global i18n translations
   const getText = (key: string): string => {
-    return translations[language]?.[key] || translations.en[key] || key;
+    return t(key, language);
   };
 
   const currentSphere = SPHERE_KEYS[currentSphereIndex];
@@ -297,13 +208,13 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
   };
 
   const handleReturnToTelegram = () => {
-    // Try to close the Mini App
+    // Try to close the Mini App first
     const tg = (window as unknown as { Telegram?: { WebApp?: { close: () => void } } }).Telegram?.WebApp;
     if (tg?.close) {
       tg.close();
     } else {
-      // Fallback: redirect to bot
-      window.location.href = "https://t.me/balance_guide_anil_bot";
+      // Fallback: use the centralized deep link utility to open the bot
+      openTelegramBot("onboarding_complete");
     }
   };
 
