@@ -156,6 +156,7 @@ export type Database = {
           language: string | null
           mode: string | null
           name: string | null
+          onboarding_completed: boolean | null
           telegram_id: string
           updated_at: string
         }
@@ -171,6 +172,7 @@ export type Database = {
           language?: string | null
           mode?: string | null
           name?: string | null
+          onboarding_completed?: boolean | null
           telegram_id: string
           updated_at?: string
         }
@@ -186,6 +188,7 @@ export type Database = {
           language?: string | null
           mode?: string | null
           name?: string | null
+          onboarding_completed?: boolean | null
           telegram_id?: string
           updated_at?: string
         }

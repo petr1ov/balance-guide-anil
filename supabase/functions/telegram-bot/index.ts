@@ -46,60 +46,32 @@ const MESSAGES: Record<string, {
   chooseLanguage: string; 
   languageSet: string; 
   openApp: string;
-  modeSelection: string;
-  fastModeSelected: string;
-  jyotishModeSelected: string;
-  askBirthDate: string;
-  askBirthTime: string;
-  askBirthCountry: string;
-  askBirthCity: string;
-  birthDataComplete: string;
-  invalidDate: string;
+  pointBPrompt: string;
+  onboardingNotComplete: string;
 }> = {
   ru: {
     welcome: "👋 Добро пожаловать в Balance Mentor",
     chooseLanguage: "Выберите язык:",
-    languageSet: "🙏 Рад знакомству!\nЯ — Anil, твой ИИ-наставник по балансу жизни.\n\nПиши мне текстовые или голосовые сообщения прямо здесь, а для просмотра своего прогресса нажми кнопку ниже.",
+    languageSet: "🙏 Рад знакомству!\nЯ — Anil, твой ИИ-наставник по балансу жизни.\n\nНажми кнопку ниже, чтобы начать оценку сфер жизни в приложении.",
     openApp: "🌈 Открыть Balance Mentor",
-    modeSelection: "Как мы пойдём дальше?\n\n🎯 *Быстрый старт* — без астрологии, сразу к делу\n🔮 *С Джйотиш* — глубокий анализ по натальной карте\n\nНапиши *1* или *2*",
-    fastModeSelected: "🎯 Отлично! Начнём с оценки сфер жизни.\n\nНасколько ты сейчас доволен сферой «Духовность»? Оцени от 1 до 10.",
-    jyotishModeSelected: "🔮 Прекрасный выбор! Астрологический анализ добавит глубины рекомендациям.\n\nДля построения натальной карты мне нужны данные о рождении.",
-    askBirthDate: "📅 *Шаг 1 из 4*\nНапиши дату рождения в формате:\n*ДД.ММ.ГГГГ*",
-    askBirthTime: "⏰ *Шаг 2 из 4*\nЕсли знаешь точное время — напиши его (ЧЧ:ММ).\n\nЕсли нет — выбери вариант:\n*утро / день / вечер / ночь*",
-    askBirthCountry: "🌍 *Шаг 3 из 4*\nВ какой стране ты родился(лась)?",
-    askBirthCity: "🏙️ *Шаг 4 из 4*\nНапиши город рождения\n(или ближайший крупный город)",
-    birthDataComplete: "Благодарю 🙏\nЯ сделаю разбор твоей натальной карты и использую его,\nчтобы рекомендации были *глубже и точнее*.\n\nА теперь начнём оценку сфер жизни.\n\nНасколько ты сейчас доволен сферой «Духовность»? Оцени от 1 до 10.",
-    invalidDate: "Пожалуйста, введи дату в формате *ДД.ММ.ГГГГ*, например: 15.03.1990",
+    pointBPrompt: "Теперь давай поговорим о твоей точке B.\n\nОпиши голосом или текстом, каким ты хочешь видеть свою жизнь в сфере «{sphere}», когда баланс будет идеальным.\n\nМожешь говорить свободно, я слушаю 🎙",
+    onboardingNotComplete: "Для начала работы с балансом, пожалуйста, открой приложение и пройди оценку сфер жизни.",
   },
   en: {
     welcome: "👋 Welcome to Balance Mentor",
     chooseLanguage: "Please choose your language:",
-    languageSet: "🙏 Nice to meet you!\nI'm Anil, your AI guide to life balance.\n\nSend me text or voice messages here, and tap the button below to view your progress.",
+    languageSet: "🙏 Nice to meet you!\nI'm Anil, your AI guide to life balance.\n\nTap the button below to start assessing your life areas in the app.",
     openApp: "🌈 Open Balance Mentor",
-    modeSelection: "How shall we proceed?\n\n🎯 *Quick Start* — no astrology, straight to the point\n🔮 *With Jyotish* — deep analysis based on your birth chart\n\nType *1* or *2*",
-    fastModeSelected: "🎯 Great! Let's start with assessing life areas.\n\nHow satisfied are you with «Spirituality» right now? Rate from 1 to 10.",
-    jyotishModeSelected: "🔮 Wonderful choice! Astrological analysis will add depth to the recommendations.\n\nTo build your birth chart, I need some birth data.",
-    askBirthDate: "📅 *Step 1 of 4*\nPlease enter your birth date in format:\n*DD.MM.YYYY*",
-    askBirthTime: "⏰ *Step 2 of 4*\nIf you know the exact time — write it (HH:MM).\n\nIf not — choose an option:\n*morning / afternoon / evening / night*",
-    askBirthCountry: "🌍 *Step 3 of 4*\nWhich country were you born in?",
-    askBirthCity: "🏙️ *Step 4 of 4*\nWhat city were you born in?\n(or the nearest major city)",
-    birthDataComplete: "Thank you 🙏\nI will analyze your birth chart and use it\nto make recommendations *deeper and more accurate*.\n\nNow let's assess your life areas.\n\nHow satisfied are you with «Spirituality» right now? Rate from 1 to 10.",
-    invalidDate: "Please enter the date in *DD.MM.YYYY* format, for example: 15.03.1990",
+    pointBPrompt: "Now let's talk about your Point B.\n\nDescribe by voice or text what you want your life to look like in «{sphere}» when your balance is perfect.\n\nFeel free to speak openly, I'm listening 🎙",
+    onboardingNotComplete: "To start working on your balance, please open the app and complete the life areas assessment.",
   },
   hi: {
     welcome: "👋 Balance Mentor में आपका स्वागत है",
     chooseLanguage: "कृपया अपनी भाषा चुनें:",
-    languageSet: "🙏 आपसे मिलकर खुशी हुई!\nमैं अनिल हूँ — आपका जीवन संतुलन मार्गदर्शक।\n\nमुझे यहाँ टेक्स्ट या वॉयस मैसेज भेजें, और अपनी प्रगति देखने के लिए नीचे बटन दबाएं।",
+    languageSet: "🙏 आपसे मिलकर खुशी हुई!\nमैं अनिल हूँ — आपका जीवन संतुलन मार्गदर्शक।\n\nऐप में जीवन क्षेत्रों का मूल्यांकन शुरू करने के लिए नीचे बटन दबाएं।",
     openApp: "🌈 Balance Mentor खोलें",
-    modeSelection: "हम आगे कैसे बढ़ें?\n\n🎯 *त्वरित शुरुआत* — ज्योतिष के बिना, सीधे बात पर\n🔮 *ज्योतिष के साथ* — जन्म कुंडली पर गहन विश्लेषण\n\n*1* या *2* लिखें",
-    fastModeSelected: "🎯 बढ़िया! जीवन क्षेत्रों के मूल्यांकन से शुरू करते हैं।\n\nअभी आप «आध्यात्मिकता» से कितने संतुष्ट हैं? 1 से 10 तक रेट करें।",
-    jyotishModeSelected: "🔮 शानदार विकल्प! ज्योतिषीय विश्लेषण सिफारिशों में गहराई जोड़ेगा।\n\nआपकी जन्म कुंडली बनाने के लिए, मुझे कुछ जन्म डेटा चाहिए।",
-    askBirthDate: "📅 *चरण 1/4*\nकृपया जन्म तिथि इस प्रारूप में लिखें:\n*DD.MM.YYYY*",
-    askBirthTime: "⏰ *चरण 2/4*\nयदि आप सटीक समय जानते हैं — लिखें (HH:MM)।\n\nयदि नहीं — विकल्प चुनें:\n*सुबह / दोपहर / शाम / रात*",
-    askBirthCountry: "🌍 *चरण 3/4*\nआप किस देश में पैदा हुए थे?",
-    askBirthCity: "🏙️ *चरण 4/4*\nआप किस शहर में पैदा हुए थे?\n(या निकटतम बड़ा शहर)",
-    birthDataComplete: "धन्यवाद 🙏\nमैं आपकी जन्म कुंडली का विश्लेषण करूंगा और इसका उपयोग करूंगा\nताकि सिफारिशें *गहरी और अधिक सटीक* हों।\n\nअब जीवन क्षेत्रों का मूल्यांकन शुरू करते हैं।\n\nअभी आप «आध्यात्मिकता» से कितने संतुष्ट हैं? 1 से 10 तक रेट करें।",
-    invalidDate: "कृपया तिथि *DD.MM.YYYY* प्रारूप में दर्ज करें, उदाहरण: 15.03.1990",
+    pointBPrompt: "अब आपके बिंदु B के बारे में बात करते हैं।\n\nवॉयस या टेक्स्ट से बताएं कि आप «{sphere}» क्षेत्र में अपना जीवन कैसा देखना चाहते हैं जब आपका संतुलन सही हो।\n\nबेझिझक बोलें, मैं सुन रहा हूं 🎙",
+    onboardingNotComplete: "अपने संतुलन पर काम शुरू करने के लिए, कृपया ऐप खोलें और जीवन क्षेत्रों का मूल्यांकन पूरा करें।",
   },
 };
 
