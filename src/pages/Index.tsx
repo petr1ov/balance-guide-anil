@@ -312,10 +312,13 @@ const Index = () => {
     }
   };
 
+  // Hide TabBar during onboarding or when showing onboarding screen
+  const showTabBar = onboardingCompleted === true && subScreen !== "onboarding";
+
   return (
     <div className="min-h-screen bg-background">
       {renderScreen()}
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      {showTabBar && <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />}
     </div>
   );
 };
