@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { trackEvent } from "@/lib/analytics";
 
 interface TelegramUser {
   id: number;
@@ -50,6 +51,9 @@ export function TelegramAuthProvider({ children }: { children: React.ReactNode }
         
         // Store telegram_id for identification without auth
         localStorage.setItem("telegram_id", String(user.id));
+        
+        // Track miniapp opened event
+        trackEvent("miniapp_opened", { telegram_id: user.id });
         
         // Detect language from Telegram
         const langCode = user.language_code;

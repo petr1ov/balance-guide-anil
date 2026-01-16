@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useTelegramAuth } from "@/contexts/TelegramAuthContext";
 import { t } from "@/lib/i18n";
+import { trackEvent } from "@/lib/analytics";
 
 interface ReminderSettingsScreenProps {
   onBack: () => void;
@@ -129,6 +130,14 @@ const ReminderSettingsScreen = ({ onBack, telegramId }: ReminderSettingsScreenPr
       toast({
         title: t("common.save", language as any),
         description: t("reminders.saved", language as any) || "Уведомления сохранены 🌟",
+      });
+      
+      // Track notification enabled/disabled
+      trackEvent(enabled ? "notification_enabled" : "notification_disabled", {
+        timezone,
+        has_morning: !!morningTime,
+        has_day: !!dayTime,
+        has_evening: !!eveningTime,
       });
       
       onBack();

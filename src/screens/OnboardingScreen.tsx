@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTelegramAuth } from "@/contexts/TelegramAuthContext";
 import { Language, t } from "@/lib/i18n";
 import { BalanceScores, SphereKey, SPHERE_KEYS } from "@/types/balance";
+import { trackEvent } from "@/lib/analytics";
 
 interface OnboardingScreenProps {
   language: Language;
@@ -149,6 +150,7 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
   const handleModeSelect = (selectedMode: "fast" | "jyotish") => {
     setMode(selectedMode);
     setStep("scoring");
+    trackEvent("mode_selected", { mode: selectedMode });
   };
 
   const handleScoreChange = (value: number[]) => {
@@ -159,10 +161,18 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
   };
 
   const handleNextSphere = () => {
+    // Track sphere scored event
+    trackEvent("sphere_scored", { 
+      sphere: currentSphere, 
+      score: scores[currentSphere] 
+    });
+    
     if (currentSphereIndex < SPHERE_KEYS.length - 1) {
       setCurrentSphereIndex(prev => prev + 1);
     } else {
-      // All spheres scored
+      // All spheres scored - track Point A completion
+      trackEvent("point_a_completed", { ...scores });
+      
       if (mode === "jyotish") {
         setStep("birth_date");
       } else {
@@ -268,6 +278,13 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
           conversation_state: conversationState,
         })
         .eq("id", user.id);
+
+      // Track onboarding completed
+      trackEvent("onboarding_completed", { 
+        mode, 
+        ...scores,
+        has_birth_data: mode === "jyotish" 
+      });
 
       setStep("complete");
     } catch (error) {
