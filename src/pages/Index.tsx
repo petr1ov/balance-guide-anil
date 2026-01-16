@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Language, setCurrentLanguage } from "@/lib/i18n";
 import { openTelegramBot } from "@/lib/telegram";
 import { BalanceScores, DEFAULT_SCORES, SphereKey } from "@/types/balance";
+import { trackEvent } from "@/lib/analytics";
 
 type TabType = "home" | "balance" | "profile";
 type SubScreen = "none" | "reminders" | "sphereDetails" | "language" | "history" | "onboarding";
@@ -145,6 +146,7 @@ const Index = () => {
   const handleSectorClick = (sector: SphereKey) => {
     setSelectedSphere(sector);
     setSubScreen("sphereDetails");
+    trackEvent("sphere_details_viewed", { sphere: sector });
   };
 
   const handleUpdateScores = () => {
@@ -159,6 +161,7 @@ const Index = () => {
 
   const handleReassessBalance = () => {
     // For reassessment, start onboarding flow again in Mini App
+    trackEvent("balance_reassess_started");
     setSubScreen("onboarding");
   };
 
@@ -178,6 +181,7 @@ const Index = () => {
   };
 
   const handleOpenHistory = () => {
+    trackEvent("history_viewed");
     setSubScreen("history");
   };
 
@@ -189,6 +193,8 @@ const Index = () => {
   const handleSelectLanguage = async (lang: Language) => {
     setLanguage(lang);
     setCurrentLanguage(lang);
+    
+    trackEvent("language_changed", { language: lang });
     
     if (user) {
       await supabase

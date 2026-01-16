@@ -326,6 +326,52 @@ async function saveChatMessage(supabase: any, telegramId: string, role: string, 
   }
 }
 
+// Track analytics event
+// deno-lint-ignore no-explicit-any
+async function trackEvent(supabase: any, telegramId: string, event: string, metadata?: Record<string, unknown>) {
+  try {
+    const profile = await getUserProfile(supabase, telegramId);
+    const userId = profile?.id || null;
+
+    await supabase.from("events").insert({
+      event,
+      user_id: userId,
+      telegram_id: telegramId,
+      metadata: metadata || null,
+    });
+    console.log(`[Analytics] Tracked event: ${event}`, metadata || "");
+  } catch (err) {
+    console.error(`[Analytics] Error tracking event "${event}":`, err);
+  }
+}
+
+// Track AI usage for cost monitoring
+// deno-lint-ignore no-explicit-any
+async function trackAIUsage(
+  supabase: any,
+  telegramId: string,
+  usageType: string,
+  model: string,
+  totalTokens?: number,
+  metadata?: Record<string, unknown>
+) {
+  try {
+    const profile = await getUserProfile(supabase, telegramId);
+    const userId = profile?.id || null;
+
+    await supabase.from("ai_usage").insert({
+      user_id: userId,
+      telegram_id: telegramId,
+      usage_type: usageType,
+      model,
+      total_tokens: totalTokens || null,
+      metadata: metadata || null,
+    });
+  } catch (err) {
+    console.error(`[Analytics] Error tracking AI usage:`, err);
+  }
+}
+
 interface ConversationState {
   stage: string;
   current_sphere_index: number;
@@ -989,6 +1035,9 @@ async function processUserMessage(
       const cleanText = userText.replace(/^🎙\s*/, "").trim();
       await saveSphereDetails(supabase, userId, sphere.key, { point_b: cleanText });
       
+      // Track Point B recorded event
+      await trackEvent(supabase, telegramId, "point_b_recorded", { sphere: sphere.key });
+      
       // Move to next sphere's Point A, or to daily if done
       const nextIndex = pointBIndex + 1;
       if (nextIndex < SPHERES.length) {
@@ -1180,6 +1229,10 @@ serve(async (req) => {
       // Save assistant message
       await saveChatMessage(supabaseAdmin, telegramId, "assistant", aiResponse);
 
+      // Track AI message sent
+      await trackEvent(supabaseAdmin, telegramId, "ai_message_sent", { source: "text" });
+      await trackAIUsage(supabaseAdmin, telegramId, "chat", "google/gemini-2.5-flash");
+
       // Send response
       await sendMessage(chatId, aiResponse);
 
@@ -1257,6 +1310,11 @@ serve(async (req) => {
 
         // Save assistant message
         await saveChatMessage(supabaseAdmin, telegramId, "assistant", aiResponse);
+
+        // Track AI message sent (from voice)
+        await trackEvent(supabaseAdmin, telegramId, "ai_message_sent", { source: "voice" });
+        await trackAIUsage(supabaseAdmin, telegramId, "chat", "google/gemini-2.5-flash");
+        await trackAIUsage(supabaseAdmin, telegramId, "stt", "whisper-1");
 
         // Send response
         await sendMessage(chatId, aiResponse);

@@ -13,13 +13,13 @@ interface FunnelStep {
 }
 
 const FUNNEL_STEPS = [
-  { name: 'Запуск бота', event: 'user_created' },
   { name: 'Открытие Mini App', event: 'miniapp_opened' },
   { name: 'Выбор режима', event: 'mode_selected' },
-  { name: 'Точка A (оценка)', event: 'point_a_completed' },
-  { name: 'Вернулся к Анилу', event: 'returned_to_anil' },
-  { name: 'Точка B (голос)', event: 'point_b_recorded' },
-  { name: 'Уведомления', event: 'notification_enabled' },
+  { name: 'Оценка сфер', event: 'sphere_scored' },
+  { name: 'Точка A завершена', event: 'point_a_completed' },
+  { name: 'Онбординг завершён', event: 'onboarding_completed' },
+  { name: 'Точка B записана', event: 'point_b_recorded' },
+  { name: 'Уведомления вкл', event: 'notification_enabled' },
   { name: 'Оплата', event: 'subscription_started' },
 ];
 
@@ -50,7 +50,7 @@ const AdminAnalytics = () => {
           .eq('event', step.event);
 
         const eventCount = count || 0;
-        if (step.event === 'user_created') {
+        if (step.event === 'miniapp_opened') {
           baseCount = eventCount || 1; // Avoid division by zero
         }
 
