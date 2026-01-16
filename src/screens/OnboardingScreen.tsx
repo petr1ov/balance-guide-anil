@@ -41,6 +41,7 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
     health: 5,
     finance: 5,
   });
+  const [scoredSpheres, setScoredSpheres] = useState<Set<SphereKey>>(new Set());
   
   // Birth data for Jyotish
   const [birthDate, setBirthDate] = useState("");
@@ -158,6 +159,7 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
       ...prev,
       [currentSphere]: value[0],
     }));
+    setScoredSpheres(prev => new Set(prev).add(currentSphere));
   };
 
   const handleNextSphere = () => {
@@ -415,9 +417,12 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
               <button
                 key={num}
-                onClick={() => setScores(prev => ({ ...prev, [currentSphere]: num }))}
+                onClick={() => {
+                  setScores(prev => ({ ...prev, [currentSphere]: num }));
+                  setScoredSpheres(prev => new Set(prev).add(currentSphere));
+                }}
                 className={`w-10 h-10 rounded-full font-semibold transition-all ${
-                  scores[currentSphere] === num
+                  scores[currentSphere] === num && scoredSpheres.has(currentSphere)
                     ? `bg-gradient-to-br ${sphereInfo.colors} text-white shadow-md scale-110`
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
@@ -428,11 +433,12 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
           </div>
         </div>
 
-        {/* Next button */}
+        {/* Next button - only active after score is selected */}
         <Button
           onClick={handleNextSphere}
           className="w-full mt-6"
           size="lg"
+          disabled={!scoredSpheres.has(currentSphere)}
         >
           {currentSphereIndex === SPHERE_KEYS.length - 1 
             ? (mode === "jyotish" ? getText("onboarding.next") : getText("onboarding.save"))
