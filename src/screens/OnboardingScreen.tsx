@@ -361,9 +361,9 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
   // Scoring screen
   if (step === "scoring") {
     return (
-      <div className="min-h-screen bg-background flex flex-col p-6">
-        {/* Progress indicator */}
-        <div className="flex items-center justify-between mb-6">
+      <div className="min-h-screen bg-background flex flex-col">
+        {/* Header with progress */}
+        <div className="flex items-center justify-between p-6 pb-0">
           <button
             onClick={handlePrevSphere}
             className="p-2 rounded-full hover:bg-muted transition-colors"
@@ -376,8 +376,8 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
           <div className="w-10" /> {/* Spacer */}
         </div>
 
-        {/* Sphere card */}
-        <div className="flex-1 flex flex-col items-center justify-center">
+        {/* Scrollable content area */}
+        <div className="flex-1 flex flex-col items-center justify-center p-6 pb-32">
           <div 
             className={`w-24 h-24 rounded-3xl bg-gradient-to-br ${sphereInfo.colors} flex items-center justify-center text-4xl mb-6 shadow-lg`}
           >
@@ -433,19 +433,21 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
           </div>
         </div>
 
-        {/* Next button - only active after score is selected */}
-        <Button
-          onClick={handleNextSphere}
-          className="w-full mt-6"
-          size="lg"
-          disabled={!scoredSpheres.has(currentSphere)}
-        >
-          {currentSphereIndex === SPHERE_KEYS.length - 1 
-            ? (mode === "jyotish" ? getText("onboarding.next") : getText("onboarding.save"))
-            : getText("onboarding.next")
-          }
-          <ChevronRight className="w-5 h-5 ml-2" />
-        </Button>
+        {/* Fixed footer with Next button - above TabBar with safe area */}
+        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <Button
+            onClick={handleNextSphere}
+            className="w-full"
+            size="lg"
+            disabled={!scoredSpheres.has(currentSphere)}
+          >
+            {currentSphereIndex === SPHERE_KEYS.length - 1 
+              ? (mode === "jyotish" ? getText("onboarding.next") : getText("onboarding.save"))
+              : getText("onboarding.next")
+            }
+            <ChevronRight className="w-5 h-5 ml-2" />
+          </Button>
+        </div>
       </div>
     );
   }
