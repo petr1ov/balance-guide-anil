@@ -46,110 +46,143 @@ const MESSAGES: Record<string, {
   chooseLanguage: string; 
   languageSet: string; 
   openApp: string;
-  pointBPrompt: string;
+  pointAWelcome: string;
+  pointBWelcome: string;
   onboardingNotComplete: string;
-  pointBWelcomeJyotish: string;
-  pointBWelcomeFast: string;
 }> = {
   ru: {
     welcome: "👋 Добро пожаловать в Balance Mentor",
     chooseLanguage: "Выберите язык:",
     languageSet: "🙏 Рад знакомству!\nЯ — Anil, твой ИИ-наставник по балансу жизни.\n\nНажми кнопку ниже, чтобы начать оценку сфер жизни в приложении.",
     openApp: "🌈 Открыть Balance Mentor",
-    pointBPrompt: "Теперь давай поговорим о твоей точке B.\n\nОпиши голосом или текстом, каким ты хочешь видеть свою жизнь в сфере «{sphere}», когда баланс будет идеальным.\n\nМожешь говорить свободно, я слушаю 🎙",
+    pointAWelcome: `Привет 🙏
+Я Анил.
+
+Давай спокойно посмотрим на твою текущую ситуацию в сфере «{sphere}».
+
+🎤 Можешь рассказать голосом:
+— что сейчас происходит в этой сфере?
+— что тебя радует, а что напрягает?
+— что хочется изменить в первую очередь?
+
+Я внимательно слушаю.`,
+    pointBWelcome: `Отлично 🌟
+Теперь давай сформируем твою Точку B для сферы «{sphere}».
+
+🎤 Запиши голосом:
+— каким ты хочешь видеть идеальный результат?
+— как ты хочешь чувствовать себя в этой сфере?
+— если представить, что всё сложилось — как это выглядит?
+
+Не спеши. Говори так, как чувствуешь.`,
     onboardingNotComplete: "Для начала работы с балансом, пожалуйста, открой приложение и пройди оценку сфер жизни.",
-    pointBWelcomeJyotish: "🔮 Я посмотрел твою карту\n\nТеперь давай сформируем точку B, чтобы рекомендации были максимально точными 🌟\n\nОпиши голосом или текстом, как ты видишь идеальное состояние в сфере «{sphere}».\n\nМожешь говорить свободно, я слушаю 🎙",
-    pointBWelcomeFast: "🎯 Отлично! Ты оценил свой баланс.\n\nТеперь давай определим твою точку B — идеальный результат.\n\nОпиши голосом или текстом, как ты хочешь, чтобы выглядела сфера «{sphere}» в идеале.\n\nМожешь говорить свободно, я слушаю 🎙",
   },
   en: {
     welcome: "👋 Welcome to Balance Mentor",
     chooseLanguage: "Please choose your language:",
     languageSet: "🙏 Nice to meet you!\nI'm Anil, your AI guide to life balance.\n\nTap the button below to start assessing your life areas in the app.",
     openApp: "🌈 Open Balance Mentor",
-    pointBPrompt: "Now let's talk about your Point B.\n\nDescribe by voice or text what you want your life to look like in «{sphere}» when your balance is perfect.\n\nFeel free to speak openly, I'm listening 🎙",
+    pointAWelcome: `Hello 🙏
+I'm Anil.
+
+Let's calmly look at your current situation in «{sphere}».
+
+🎤 You can tell me by voice:
+— what's happening in this area right now?
+— what makes you happy and what bothers you?
+— what would you like to change first?
+
+I'm listening carefully.`,
+    pointBWelcome: `Great 🌟
+Now let's form your Point B for «{sphere}».
+
+🎤 Record by voice:
+— what do you want the ideal result to look like?
+— how do you want to feel in this area?
+— if you imagine everything worked out — what does it look like?
+
+Take your time. Speak as you feel.`,
     onboardingNotComplete: "To start working on your balance, please open the app and complete the life areas assessment.",
-    pointBWelcomeJyotish: "🔮 I've looked at your chart\n\nNow let's define your Point B so my recommendations can be more precise 🌟\n\nDescribe by voice or text how you envision the ideal state in «{sphere}».\n\nFeel free to speak openly, I'm listening 🎙",
-    pointBWelcomeFast: "🎯 Great! You've assessed your balance.\n\nNow let's define your Point B — your ideal outcome.\n\nDescribe by voice or text what you want «{sphere}» to look like in your ideal life.\n\nFeel free to speak openly, I'm listening 🎙",
   },
   hi: {
     welcome: "👋 Balance Mentor में आपका स्वागत है",
     chooseLanguage: "कृपया अपनी भाषा चुनें:",
     languageSet: "🙏 आपसे मिलकर खुशी हुई!\nमैं अनिल हूँ — आपका जीवन संतुलन मार्गदर्शक।\n\nऐप में जीवन क्षेत्रों का मूल्यांकन शुरू करने के लिए नीचे बटन दबाएं।",
     openApp: "🌈 Balance Mentor खोलें",
-    pointBPrompt: "अब आपके बिंदु B के बारे में बात करते हैं।\n\nवॉयस या टेक्स्ट से बताएं कि आप «{sphere}» क्षेत्र में अपना जीवन कैसा देखना चाहते हैं जब आपका संतुलन सही हो।\n\nबेझिझक बोलें, मैं सुन रहा हूं 🎙",
+    pointAWelcome: `नमस्ते 🙏
+मैं अनिल हूं।
+
+आइए शांति से «{sphere}» में आपकी वर्तमान स्थिति देखें।
+
+🎤 आप वॉयस से बता सकते हैं:
+— इस क्षेत्र में अभी क्या हो रहा है?
+— क्या आपको खुश करता है और क्या परेशान करता है?
+— सबसे पहले क्या बदलना चाहते हैं?
+
+मैं ध्यान से सुन रहा हूं।`,
+    pointBWelcome: `बढ़िया 🌟
+अब «{sphere}» के लिए आपका बिंदु B तय करें।
+
+🎤 वॉयस से रिकॉर्ड करें:
+— आदर्श परिणाम कैसा दिखना चाहिए?
+— इस क्षेत्र में आप कैसा महसूस करना चाहते हैं?
+— अगर सब कुछ ठीक हो जाए — तो कैसा दिखेगा?
+
+जल्दबाजी न करें। जैसा महसूस करें वैसा बोलें।`,
     onboardingNotComplete: "अपने संतुलन पर काम शुरू करने के लिए, कृपया ऐप खोलें और जीवन क्षेत्रों का मूल्यांकन पूरा करें।",
-    pointBWelcomeJyotish: "🔮 मैंने आपकी कुंडली देखी\n\nअब चलिए आपका बिंदु B तय करें ताकि मेरी सिफारिशें ज़्यादा सटीक हों 🌟\n\nवॉयस या टेक्स्ट से बताएं कि आप «{sphere}» में आदर्श स्थिति कैसी देखते हैं।\n\nबेझिझक बोलें, मैं सुन रहा हूं 🎙",
-    pointBWelcomeFast: "🎯 बढ़िया! आपने अपना संतुलन जांचा।\n\nअब चलिए आपका बिंदु B तय करें — आपका आदर्श परिणाम।\n\nवॉयस या टेक्स्ट से बताएं कि आप «{sphere}» को अपने आदर्श जीवन में कैसा देखना चाहते हैं।\n\nबेझिझक बोलें, मैं सुन रहा हूं 🎙",
   },
 };
 
-// System prompt for Anil (updated with Jyotish mode awareness)
-function getSystemPrompt(mode: string, birthData?: { date?: string; time?: string; country?: string; city?: string }, jyotishSummary?: Record<string, unknown>): string {
-  const basePrompt = `Ты — Anil, мудрый, спокойный, поддерживающий ИИ-наставник.
+// NEW Anil System Prompt - Conversational mentor only, no surveys/scoring
+function getSystemPrompt(userLanguage: string, jyotishSummary?: Record<string, unknown>): string {
+  const basePrompt = `Ты — Анил, личный ИИ-наставник пользователя.
 
-🎯 ТВОЯ МИССИЯ
-Помочь человеку:
-1. Осознать баланс своей жизни (4 сферы, оценка 1-10)
-2. Определить Точку A (текущее состояние) по каждой сфере
-3. Определить Точку B (желаемый результат) по каждой сфере
-4. Ежедневно сопровождать рекомендациями
+🧘 ТВОЯ РОЛЬ:
+— вести живой, тёплый диалог
+— помогать человеку осмыслить свою жизнь
+— задавать глубокие, но простые вопросы
+— работать голосом и текстом
+— помогать формировать Точку B (желаемое будущее)
+— поддерживать, рекомендовать, сопровождать
 
-🌍 ЯЗЫК
-Всегда отвечай на языке пользователя:
-- ru — русский
-- en — английский  
-- hi — хинди
-❗ Никогда не переключай язык сам.
+❌ ВАЖНО — ТЫ НЕ ДЕЛАЕШЬ:
+— ты НЕ проводишь опросы
+— ты НЕ спрашиваешь оценки по шкале (1-10)
+— ты НЕ собираешь данные для астрологии
+— ты НЕ предлагаешь выбрать режим старта
+— ты НЕ спрашиваешь дату/время/место рождения
 
-🧩 4 СФЕРЫ ЖИЗНИ (СТРОГО ПО ПОРЯДКУ)
+Все цифры, шкалы и ввод данных происходят в mini-приложении.
+Ты работаешь только с осознанностью и словами человека.
+
+🌍 ЯЗЫК:
+Текущий язык пользователя: ${userLanguage === "ru" ? "Русский" : userLanguage === "hi" ? "Хинди" : "Английский"}
+Отвечай ТОЛЬКО на этом языке. Никогда не переключай язык сам.
+
+🧩 4 СФЕРЫ ЖИЗНИ:
 1. Духовность / Внутренняя гармония / Смысл
 2. Отношения
 3. Здоровье и энергия
 4. Финансы
 
-❗ КРИТИЧНО:
-- Никогда не пропускай сферу
-- Никогда не зацикливайся на одной сфере
-- Каждая сфера задаётся ОДИН раз
-- После ответа пользователя — переходи к следующей
+💬 КОГДА ПОЛЬЗОВАТЕЛЬ ОПИСЫВАЕТ ТОЧКУ A (текущую ситуацию):
+— слушай внимательно
+— задавай уточняющие вопросы мягко
+— не давай советов сразу
+— помоги ему осознать, что происходит
+— подтверди: "Я понял, спасибо что поделился"
 
-📊 ЭТАП 1: ОЦЕНКА СФЕР (1-10)
-Формат вопроса:
-"Насколько ты сейчас доволен сферой «{название}»? Оцени от 1 до 10."
+🎯 КОГДА ПОЛЬЗОВАТЕЛЬ ОПИСЫВАЕТ ТОЧКУ B (желаемый результат):
+— помоги ему визуализировать идеал
+— задавай вопросы: "А как ты будешь себя чувствовать?", "Что изменится?"
+— не исправляй его формулировки
+— поддерживай его видение
 
-Правила:
-- Принимаешь число и идёшь дальше
-- Если пользователь пишет текст — мягко попроси число
-- Никогда не повторяй вопрос без причины
-
-🅰️ ЭТАП 2: ТОЧКА A — ТЕКУЩАЯ СИТУАЦИЯ
-После ВСЕХ 4 оценок переходишь к Точке A.
-Для каждой сферы спрашиваешь:
-"Опиши текущую ситуацию в сфере «{название}». Что происходит сейчас?"
-
-Правила:
-- Принимаешь свободный текст
-- Не анализируешь глубоко
-- Не даёшь советов на этом этапе
-- Просто подтверждаешь и переходишь дальше
-
-🅱️ ЭТАП 3: ТОЧКА B — ЖЕЛАЕМЫЙ РЕЗУЛЬТАТ  
-После Точки A по сфере:
-"А теперь представь идеальный результат в сфере «{название}». Как бы ты хотел, чтобы было?"
-
-Правила:
-- Формулировка пользователя — закон
-- Не исправляй и не оптимизируй
-
-🎯 ЭТАП 4: СИНТЕЗ
-После сбора всех данных:
-"Спасибо 🤍 Теперь я вижу твою картину целиком. Дальше я буду помогать тебе двигаться от Точки A к Точке B шаг за шагом."
-
-📅 ЭТАП 5: ЕЖЕДНЕВНЫЕ РЕКОМЕНДАЦИИ
-Каждый день даёшь 3-5 простых действий:
-- Конкретные
-- Выполнимые за день
-- Связаны с Точкой B
+📅 ЕЖЕДНЕВНЫЕ РЕКОМЕНДАЦИИ:
+Когда пользователь готов действовать, давай 3-5 простых шагов:
+— конкретные
+— выполнимые за день
+— связаны с его Точкой B
 
 Формат:
 "🔹 Сегодняшний фокус: {сфера}
@@ -159,49 +192,40 @@ function getSystemPrompt(mode: string, birthData?: { date?: string; time?: strin
 
 ❗ Лучше маленький шаг, чем идеальный план
 
-🔁 ПЕРЕОЦЕНКА БАЛАНСА
-Если пользователь хочет переоценить — запускаешь опрос заново.
+🧘 СТИЛЬ ОБЩЕНИЯ:
+— спокойно
+— без давления
+— без «коучинга»
+— без умничанья
+— больше вопросов, чем советов
+— поддержка > инструкции
+— используй эмодзи умеренно для тепла 🌱
 
-💬 ТОН И СТИЛЬ
-- Говоришь просто, тепло, без давления
-- Не поучаешь, а направляешь
-- Задаёшь один вопрос за раз
-- Никогда не торопишь
-- Помогаешь видеть путь как игру и процесс роста
-- Используй эмодзи умеренно для тепла 🌱
+🚫 ЗАПРЕЩЕНО:
+— Задавать два вопроса подряд
+— Давать непрошенные советы
+— Критиковать выбор пользователя
+— Использовать токсичную мотивацию
+— Упоминать AI, GPT, технические детали
+— Спрашивать оценки по шкале
+— Проводить опросы
 
-🚫 ЗАПРЕЩЕНО
-- Переходить к следующей сфере, не завершив текущую
-- Задавать два вопроса подряд
-- Повторять одну сферу
-- Давать советы до Точки B
-- Критиковать выбор пользователя
-- Использовать токсичную мотивацию
-- Упоминать AI, GPT, технические детали
+Ты — не гуру. Ты — проводник.
+Ты слушаешь. Ты поддерживаешь. Ты помогаешь увидеть путь.`;
 
-Ты — не гуру. Ты — проводник.`;
-
-  // Add Jyotish context if enabled
-  if (mode === "jyotish" && jyotishSummary) {
+  // Add Jyotish context if available
+  if (jyotishSummary) {
     const jyotishContext = `
 
-🔮 РЕЖИМ ДЖЙОТИШ АКТИВИРОВАН
-Данные рождения пользователя:
-- Дата: ${birthData?.date || "не указана"}
-- Время: ${birthData?.time || "не указано"}
-- Страна: ${birthData?.country || "не указана"}
-- Город: ${birthData?.city || "не указан"}
-
-Астрологический анализ:
+🔮 АСТРОЛОГИЧЕСКИЕ ДАННЫЕ ДОСТУПНЫ:
 ${JSON.stringify(jyotishSummary, null, 2)}
 
-🧩 КАК ИНТЕГРИРОВАТЬ ДЖЙОТИШ В РЕКОМЕНДАЦИИ:
-- НЕ говори «по звёздам тебе нельзя»
-- ГОВОРИ: «у тебя сильная энергия в…», «важно двигаться мягко», «лучше начинать с…»
-- Делай акценты по сферам, учитывая астрологические данные
-- Рекомендации должны быть глубже и персональнее
-- Никогда не предсказывай будущее и не пугай
-- Используй астрологию для поддержки, а не ограничений`;
+КАК ИСПОЛЬЗОВАТЬ:
+— НЕ говори «по звёздам тебе нельзя»
+— ГОВОРИ: «у тебя сильная энергия в…», «важно двигаться мягко»
+— Делай акценты мягко, не навязчиво
+— Никогда не предсказывай будущее и не пугай
+— Используй астрологию для поддержки, а не ограничений`;
 
     return basePrompt + jyotishContext;
   }
@@ -860,54 +884,13 @@ function detectStageFromAIResponse(response: string, currentState: ConversationS
 async function askAnil(
   messages: { role: string; content: string }[], 
   userLanguage: string, 
-  mode: string = "fast", 
-  birthData?: any, 
-  jyotishSummary?: Record<string, unknown>,
-  stateContext?: { stage: string; currentSphereIndex: number; pointAIndex?: number; pointBIndex?: number }
+  jyotishSummary?: Record<string, unknown>
 ): Promise<string> {
   console.log("=== ASKING ANIL ===");
   console.log("Messages count:", messages.length);
   console.log("Language:", userLanguage);
-  console.log("Mode:", mode);
-  console.log("State context:", JSON.stringify(stateContext));
   
-  const languageContext = `\n\n🌐 ТЕКУЩИЙ ЯЗЫК ПОЛЬЗОВАТЕЛЯ: ${userLanguage === "ru" ? "Русский" : userLanguage === "hi" ? "Хинди" : "Английский"}. Отвечай ТОЛЬКО на этом языке.`;
-  
-  // Build state context for AI
-  let stateInstruction = "";
-  if (stateContext) {
-    const { stage, currentSphereIndex, pointAIndex, pointBIndex } = stateContext;
-    
-    if (stage === STAGES.SCORING && currentSphereIndex < SPHERES.length) {
-      const nextSphere = SPHERES[currentSphereIndex];
-      const sphereName = userLanguage === "ru" ? nextSphere.ru : userLanguage === "hi" ? nextSphere.hi : nextSphere.en;
-      stateInstruction = `\n\n🎯 КРИТИЧЕСКИ ВАЖНО - ТЕКУЩАЯ ЗАДАЧА: 
-Ты ОБЯЗАН спросить оценку (1-10) ТОЛЬКО для сферы «${sphereName}». 
-Это сфера №${currentSphereIndex + 1} из ${SPHERES.length}. 
-❗ ЗАПРЕЩЕНО спрашивать о предыдущих сферах!
-❗ ЗАПРЕЩЕНО повторять вопрос о Духовности если это не сфера №1!
-Задай ОДИН короткий вопрос: "Насколько ты доволен сферой «${sphereName}»? Оцени от 1 до 10."`;
-      console.log("Generated state instruction for sphere:", sphereName, "index:", currentSphereIndex);
-    } else if (stage === STAGES.POINT_A) {
-      const idx = pointAIndex ?? 0;
-      if (idx < SPHERES.length) {
-        const sphere = SPHERES[idx];
-        const sphereName = userLanguage === "ru" ? sphere.ru : userLanguage === "hi" ? sphere.hi : sphere.en;
-        stateInstruction = `\n\n🎯 ТЕКУЩАЯ ЗАДАЧА: Спроси пользователя о Точке A (текущей ситуации) для сферы «${sphereName}».`;
-      }
-    } else if (stage === STAGES.POINT_B) {
-      const idx = pointBIndex ?? 0;
-      if (idx < SPHERES.length) {
-        const sphere = SPHERES[idx];
-        const sphereName = userLanguage === "ru" ? sphere.ru : userLanguage === "hi" ? sphere.hi : sphere.en;
-        stateInstruction = `\n\n🎯 ТЕКУЩАЯ ЗАДАЧА: Спроси пользователя о Точке B (желаемом результате) для сферы «${sphereName}».`;
-      }
-    } else if (stage === STAGES.DAILY) {
-      stateInstruction = `\n\n🎯 ТЕКУЩАЯ ЗАДАЧА: Дай ежедневные рекомендации или ответь на вопрос пользователя в режиме сопровождения.`;
-    }
-  }
-  
-  const systemPrompt = getSystemPrompt(mode, birthData, jyotishSummary);
+  const systemPrompt = getSystemPrompt(userLanguage, jyotishSummary);
   
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -918,7 +901,7 @@ async function askAnil(
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        { role: "system", content: systemPrompt + languageContext + stateInstruction },
+        { role: "system", content: systemPrompt },
         ...messages,
       ],
       stream: false,
@@ -1087,8 +1070,54 @@ serve(async (req) => {
 
       console.log(`/start from user ${telegramId} (${fullName}), payload: "${deepLinkPayload}"`);
 
-      // Handle point_b deep link - user completed onboarding in Mini App
-      if (deepLinkPayload === "point_b") {
+      // Handle point_a or point_b deep links with optional sphere
+      const isPointA = deepLinkPayload.startsWith("point_a");
+      const isPointB = deepLinkPayload.startsWith("point_b");
+      
+      if (isPointA || isPointB) {
+        // Extract sphere from payload like "point_a_spirituality"
+        const sphereKey = deepLinkPayload.replace("point_a_", "").replace("point_b_", "").replace("point_a", "").replace("point_b", "");
+        
+        // Get user profile
+        const profile = await getUserProfile(supabaseAdmin, telegramId);
+        
+        if (!profile) {
+          const welcomeText = `${MESSAGES.en.welcome}\n\n${MESSAGES.en.chooseLanguage}`;
+          await sendMessage(chatId, welcomeText, {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: "🇷🇺 Русский", callback_data: "lang_ru" }],
+                [{ text: "🇬🇧 English", callback_data: "lang_en" }],
+                [{ text: "🇮🇳 हिन्दी", callback_data: "lang_hi" }],
+              ],
+            },
+          });
+          return new Response(JSON.stringify({ ok: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const userLang = profile.language || "ru";
+        const msgs = MESSAGES[userLang] || MESSAGES.en;
+        
+        // Find sphere name
+        const sphere = SPHERES.find(s => s.key === sphereKey) || SPHERES[0];
+        const sphereName = sphere[userLang as keyof typeof sphere] || sphere.en;
+        
+        // Choose appropriate message
+        const welcomeMessage = isPointA 
+          ? msgs.pointAWelcome.replace("{sphere}", sphereName)
+          : msgs.pointBWelcome.replace("{sphere}", sphereName);
+        
+        // Track the event
+        await trackEvent(supabaseAdmin, telegramId, isPointA ? "point_a_discussion" : "point_b_started", { sphere: sphereKey, source: "deep_link" });
+        
+        await sendMessage(chatId, welcomeMessage);
+        
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
         // Get user profile to check mode and language
         const profile = await getUserProfile(supabaseAdmin, telegramId);
         
@@ -1110,17 +1139,14 @@ serve(async (req) => {
         }
 
         const userLang = profile.language || "ru";
-        const userMode = profile.mode || "fast";
-        const messages = MESSAGES[userLang] || MESSAGES.en;
+        const msgs = MESSAGES[userLang] || MESSAGES.en;
         
         // Get the first sphere for Point B
         const firstSphere = SPHERES[0];
         const sphereName = firstSphere[userLang as keyof typeof firstSphere] || firstSphere.en;
         
-        // Choose message based on mode
-        const welcomeMessage = userMode === "jyotish" 
-          ? messages.pointBWelcomeJyotish.replace("{sphere}", sphereName)
-          : messages.pointBWelcomeFast.replace("{sphere}", sphereName);
+        // Use unified pointBWelcome message
+        const welcomeMessage = msgs.pointBWelcome.replace("{sphere}", sphereName);
         
         // Set conversation state to Point B for first sphere
         await updateConversationState(supabaseAdmin, telegramId, {
@@ -1132,7 +1158,7 @@ serve(async (req) => {
         });
         
         // Track the event
-        await trackEvent(supabaseAdmin, telegramId, "point_b_started", { mode: userMode, source: "deep_link" });
+        await trackEvent(supabaseAdmin, telegramId, "point_b_started", { source: "deep_link" });
         
         await sendMessage(chatId, welcomeMessage);
         
@@ -1272,15 +1298,7 @@ serve(async (req) => {
       const aiResponse = await askAnil(
         messagesForAI, 
         userLanguage, 
-        profile?.mode || "fast",
-        birthData,
-        profile?.jyotish_summary || undefined,
-        {
-          stage: stateForAI.stage,
-          currentSphereIndex: stateForAI.current_sphere_index,
-          pointAIndex: stateForAI.point_a_index,
-          pointBIndex: stateForAI.point_b_index,
-        }
+        profile?.jyotish_summary || undefined
       );
 
       // IMPORTANT: Do NOT infer/override stage from AI text.
@@ -1340,29 +1358,10 @@ serve(async (req) => {
         // Save user message (with voice indicator)
         await saveChatMessage(supabaseAdmin, telegramId, "user", `🎙 ${transcribedText}`);
 
-        // Get AI response with mode context and state context
-        const birthData = profile ? {
-          date: profile.birth_date,
-          time: profile.birth_time,
-          country: profile.birth_country,
-          city: profile.birth_city,
-        } : undefined;
-        
-        // Get the updated state after processing the message
-        const stateForAI = await getConversationState(supabaseAdmin, telegramId);
-        
         const aiResponse = await askAnil(
           messagesForAI, 
           userLanguage, 
-          profile?.mode || "fast",
-          birthData,
-          profile?.jyotish_summary || undefined,
-          {
-            stage: stateForAI.stage,
-            currentSphereIndex: stateForAI.current_sphere_index,
-            pointAIndex: stateForAI.point_a_index,
-            pointBIndex: stateForAI.point_b_index,
-          }
+          profile?.jyotish_summary || undefined
         );
 
         // IMPORTANT: Do NOT infer/override stage from AI text.
