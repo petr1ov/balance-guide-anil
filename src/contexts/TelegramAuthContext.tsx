@@ -25,6 +25,28 @@ interface TelegramAuthContextType {
 
 const TelegramAuthContext = createContext<TelegramAuthContextType | undefined>(undefined);
 
+// Helper to clear all user-specific storage
+function clearUserStorage() {
+  // Clear localStorage items related to user data
+  const keysToRemove = [
+    "telegram_id",
+    "app_language",
+    "lang",
+  ];
+  keysToRemove.forEach((key) => localStorage.removeItem(key));
+  
+  // Clear sessionStorage completely
+  sessionStorage.clear();
+  
+  console.log("User storage cleared due to Telegram account change");
+}
+
+// Get current Telegram user from WebApp
+function getTelegramUser(): TelegramUser | null {
+  const tg = (window as unknown as { Telegram?: { WebApp?: { initDataUnsafe?: { user?: TelegramUser } } } }).Telegram?.WebApp;
+  return tg?.initDataUnsafe?.user ?? null;
+}
+
 export function TelegramAuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -39,36 +61,51 @@ export function TelegramAuthProvider({ children }: { children: React.ReactNode }
   }, []);
 
   useEffect(() => {
-    // Initialize Telegram Mini App
+    // Initialize Telegram Mini App and get current user
     const tg = (window as unknown as { Telegram?: { WebApp?: { ready: () => void; initData: string; initDataUnsafe?: { user?: TelegramUser } } } }).Telegram?.WebApp;
+    
+    let currentTelegramUser: TelegramUser | null = null;
     
     if (tg) {
       tg.ready();
-      
-      const user = tg.initDataUnsafe?.user;
-      if (user) {
-        setTelegramUser(user);
-        
-        // Store telegram_id for identification without auth
-        localStorage.setItem("telegram_id", String(user.id));
-        
-        // Track miniapp opened event
-        trackEvent("miniapp_opened", { telegram_id: user.id });
-        
-        // Detect language from Telegram
-        const langCode = user.language_code;
-        const lang = langCode?.startsWith("ru")
-          ? "ru"
-          : langCode?.startsWith("hi")
-          ? "hi"
-          : "en";
-        
-        localStorage.setItem("app_language", lang);
-        setLanguageState(lang);
-      }
+      currentTelegramUser = tg.initDataUnsafe?.user ?? null;
     }
 
-    // Restore language from localStorage
+    // CRITICAL: Check if Telegram user changed - must happen BEFORE using any cached data
+    const storedTelegramId = localStorage.getItem("telegram_id");
+    const currentTelegramId = currentTelegramUser ? String(currentTelegramUser.id) : null;
+    
+    const telegramUserChanged = currentTelegramId && storedTelegramId && storedTelegramId !== currentTelegramId;
+    
+    if (telegramUserChanged) {
+      console.log(`Telegram user changed: ${storedTelegramId} -> ${currentTelegramId}, clearing storage`);
+      clearUserStorage();
+      // Sign out from Supabase to force re-authentication
+      supabase.auth.signOut().catch(console.error);
+    }
+
+    if (currentTelegramUser) {
+      setTelegramUser(currentTelegramUser);
+      
+      // Store telegram_id for future change detection
+      localStorage.setItem("telegram_id", String(currentTelegramUser.id));
+      
+      // Track miniapp opened event
+      trackEvent("miniapp_opened", { telegram_id: currentTelegramUser.id });
+      
+      // Detect language from Telegram
+      const langCode = currentTelegramUser.language_code;
+      const lang = langCode?.startsWith("ru")
+        ? "ru"
+        : langCode?.startsWith("hi")
+        ? "hi"
+        : "en";
+      
+      localStorage.setItem("app_language", lang);
+      setLanguageState(lang);
+    }
+
+    // Restore language from localStorage (if not changed above)
     const savedLang = localStorage.getItem("app_language");
     if (savedLang && ["ru", "en", "hi"].includes(savedLang)) {
       setLanguageState(savedLang);
@@ -90,23 +127,51 @@ export function TelegramAuthProvider({ children }: { children: React.ReactNode }
         const { data: { session: existingSession } } = await supabase.auth.getSession();
         
         if (existingSession) {
-          console.log("Existing session found:", existingSession.user.id);
-          setSession(existingSession);
-          setUser(existingSession.user);
-          
-          // Fetch user language from profile
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("language")
-            .eq("id", existingSession.user.id)
-            .maybeSingle();
-          
-          if (profile?.language) {
-            setLanguage(profile.language);
+          // CRITICAL: Verify the session belongs to the current Telegram user
+          if (currentTelegramId) {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("telegram_id, language")
+              .eq("id", existingSession.user.id)
+              .maybeSingle();
+            
+            // If telegram_id doesn't match, sign out and re-authenticate
+            if (profile && profile.telegram_id !== currentTelegramId) {
+              console.log(`Session telegram_id mismatch: ${profile.telegram_id} !== ${currentTelegramId}, signing out`);
+              await supabase.auth.signOut();
+              clearUserStorage();
+              // Continue to Telegram auth below
+            } else {
+              console.log("Existing session verified for telegram_id:", currentTelegramId);
+              setSession(existingSession);
+              setUser(existingSession.user);
+              
+              if (profile?.language) {
+                setLanguage(profile.language);
+              }
+              
+              setLoading(false);
+              return;
+            }
+          } else {
+            // No Telegram context, use existing session
+            console.log("Existing session found (no Telegram context):", existingSession.user.id);
+            setSession(existingSession);
+            setUser(existingSession.user);
+            
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("language")
+              .eq("id", existingSession.user.id)
+              .maybeSingle();
+            
+            if (profile?.language) {
+              setLanguage(profile.language);
+            }
+            
+            setLoading(false);
+            return;
           }
-          
-          setLoading(false);
-          return;
         }
 
         // Check if running inside Telegram Mini App
