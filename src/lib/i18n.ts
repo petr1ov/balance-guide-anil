@@ -44,6 +44,7 @@ export const translations: Record<Language, Record<string, string>> = {
   ru: {
     // Home screen
     "home.startAssessment": "Начнём оценку баланса?",
+    "home.openAppToStart": "Пройдите онбординг для начала",
     "home.tapToStart": "Нажмите + чтобы начать",
     "home.tapSectorDetails": "Нажмите на сектор для подробностей",
     
@@ -143,6 +144,7 @@ export const translations: Record<Language, Record<string, string>> = {
   en: {
     // Home screen
     "home.startAssessment": "Ready to assess your balance?",
+    "home.openAppToStart": "Complete onboarding to start",
     "home.tapToStart": "Tap + to begin",
     "home.tapSectorDetails": "Tap a sector for details",
     
@@ -242,6 +244,7 @@ export const translations: Record<Language, Record<string, string>> = {
   hi: {
     // Home screen
     "home.startAssessment": "क्या आप अपना संतुलन जांचना चाहते हैं?",
+    "home.openAppToStart": "शुरू करने के लिए ऑनबोर्डिंग पूरा करें",
     "home.tapToStart": "शुरू करने के लिए + दबाएं",
     "home.tapSectorDetails": "विवरण के लिए सेक्टर पर टैप करें",
     

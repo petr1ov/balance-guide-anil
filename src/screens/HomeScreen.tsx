@@ -1,17 +1,15 @@
 import MentorHeader, { MentorAvatar } from "@/components/MentorHeader";
 import BalanceWheel from "@/components/BalanceWheel";
-import FloatingActionButton from "@/components/FloatingActionButton";
 import { BalanceScores } from "@/types/balance";
 import { t, Language } from "@/lib/i18n";
 
 interface HomeScreenProps {
   scores: BalanceScores;
   language: Language;
-  onUpdateScores: () => void;
   onSectorClick: (sector: keyof BalanceScores) => void;
 }
 
-const HomeScreen = ({ scores, language, onUpdateScores, onSectorClick }: HomeScreenProps) => {
+const HomeScreen = ({ scores, language, onSectorClick }: HomeScreenProps) => {
   const hasScores = Object.values(scores).some((score) => score > 0);
 
   return (
@@ -32,7 +30,7 @@ const HomeScreen = ({ scores, language, onUpdateScores, onSectorClick }: HomeScr
                   {t("home.startAssessment", language)}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {t("home.tapToStart", language)}
+                  {t("home.openAppToStart", language)}
                 </p>
               </div>
             </div>
@@ -47,8 +45,6 @@ const HomeScreen = ({ scores, language, onUpdateScores, onSectorClick }: HomeScr
           </div>
         )}
       </div>
-
-      <FloatingActionButton onClick={onUpdateScores} />
     </div>
   );
 };
