@@ -1,5 +1,6 @@
-import { ArrowLeft, MapPin, Target, Calendar, Sparkles, Heart, Leaf, Coins, Briefcase, Smile, Users } from "lucide-react";
+import { ArrowLeft, MapPin, Target, Calendar, Sparkles, Heart, Leaf, Coins, Briefcase, Smile, Users, MessageCircle, Mic } from "lucide-react";
 import { useTranslation, Language } from "@/lib/i18n";
+import { openTelegramBot } from "@/lib/telegram";
 
 interface SphereDetail {
   sphere: string;
@@ -39,6 +40,14 @@ const SphereDetailsScreen = ({ sphere, detail, language, onBack }: SphereDetails
     if (score >= 8) return "text-health-dark";
     if (score >= 5) return "text-finance-dark";
     return "text-relationships-dark";
+  };
+
+  const handleDiscussPointA = () => {
+    openTelegramBot(`point_a_${sphere}`);
+  };
+
+  const handleFormPointB = () => {
+    openTelegramBot(`point_b_${sphere}`);
   };
 
   return (
@@ -82,9 +91,18 @@ const SphereDetailsScreen = ({ sphere, detail, language, onBack }: SphereDetails
               <p className="text-xs text-muted-foreground">{t("sphere.pointADesc")}</p>
             </div>
           </div>
-          <p className="text-foreground">
+          <p className="text-foreground mb-4">
             {detail?.pointA || t("sphere.noPointA")}
           </p>
+          
+          {/* Discuss with Anil Button */}
+          <button
+            onClick={handleDiscussPointA}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-secondary hover:bg-secondary/80 rounded-xl transition-colors"
+          >
+            <MessageCircle className="w-5 h-5 text-foreground" />
+            <span className="font-medium text-foreground">{t("sphere.discussPointA")}</span>
+          </button>
         </div>
 
         {/* Point B - Goal */}
@@ -98,9 +116,18 @@ const SphereDetailsScreen = ({ sphere, detail, language, onBack }: SphereDetails
               <p className="text-xs text-muted-foreground">{t("sphere.pointBDesc")}</p>
             </div>
           </div>
-          <p className="text-foreground">
+          <p className="text-foreground mb-4">
             {detail?.pointB || t("sphere.noPointB")}
           </p>
+          
+          {/* Form Point B Button */}
+          <button
+            onClick={handleFormPointB}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-primary hover:bg-primary/90 rounded-xl transition-colors"
+          >
+            <Mic className="w-5 h-5 text-primary-foreground" />
+            <span className="font-medium text-primary-foreground">{t("sphere.formPointB")}</span>
+          </button>
         </div>
 
         {/* Daily Plan */}

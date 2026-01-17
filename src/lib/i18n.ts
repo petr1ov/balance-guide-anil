@@ -68,6 +68,8 @@ export const translations: Record<Language, Record<string, string>> = {
     "sphere.noPointA": "Расскажи Анилу о текущей ситуации в этой сфере",
     "sphere.noPointB": "Опиши желаемый результат в диалоге с Анилом",
     "sphere.noPlan": "План появится после общения с Анилом",
+    "sphere.discussPointA": "💬 Обсудить текущую ситуацию с Анилом",
+    "sphere.formPointB": "✨ Готов пообщаться и прояснить цель",
     
     // Chat
     "chat.placeholder": "Напишите сообщение...",
@@ -168,6 +170,8 @@ export const translations: Record<Language, Record<string, string>> = {
     "sphere.noPointA": "Tell Anil about your current situation",
     "sphere.noPointB": "Describe your desired result to Anil",
     "sphere.noPlan": "A plan will appear after chatting with Anil",
+    "sphere.discussPointA": "💬 Discuss current situation with Anil",
+    "sphere.formPointB": "✨ Ready to chat and clarify your goal",
     
     // Chat
     "chat.placeholder": "Type a message...",
@@ -268,6 +272,8 @@ export const translations: Record<Language, Record<string, string>> = {
     "sphere.noPointA": "अनिल को अपनी वर्तमान स्थिति बताएं",
     "sphere.noPointB": "अनिल को अपना वांछित परिणाम बताएं",
     "sphere.noPlan": "अनिल से बात करने के बाद योजना दिखाई देगी",
+    "sphere.discussPointA": "💬 अनिल के साथ वर्तमान स्थिति पर चर्चा करें",
+    "sphere.formPointB": "✨ बातचीत करें और लक्ष्य स्पष्ट करें",
     
     // Chat
     "chat.placeholder": "संदेश लिखें...",
