@@ -1118,54 +1118,6 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-        // Get user profile to check mode and language
-        const profile = await getUserProfile(supabaseAdmin, telegramId);
-        
-        if (!profile) {
-          // No profile, send to language selection
-          const welcomeText = `${MESSAGES.en.welcome}\n\n${MESSAGES.en.chooseLanguage}`;
-          await sendMessage(chatId, welcomeText, {
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: "🇷🇺 Русский", callback_data: "lang_ru" }],
-                [{ text: "🇬🇧 English", callback_data: "lang_en" }],
-                [{ text: "🇮🇳 हिन्दी", callback_data: "lang_hi" }],
-              ],
-            },
-          });
-          return new Response(JSON.stringify({ ok: true }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        const userLang = profile.language || "ru";
-        const msgs = MESSAGES[userLang] || MESSAGES.en;
-        
-        // Get the first sphere for Point B
-        const firstSphere = SPHERES[0];
-        const sphereName = firstSphere[userLang as keyof typeof firstSphere] || firstSphere.en;
-        
-        // Use unified pointBWelcome message
-        const welcomeMessage = msgs.pointBWelcome.replace("{sphere}", sphereName);
-        
-        // Set conversation state to Point B for first sphere
-        await updateConversationState(supabaseAdmin, telegramId, {
-          stage: STAGES.POINT_B,
-          current_sphere_index: 0,
-          point_a_index: 0,
-          point_b_index: 0,
-          scores: {},
-        });
-        
-        // Track the event
-        await trackEvent(supabaseAdmin, telegramId, "point_b_started", { source: "deep_link" });
-        
-        await sendMessage(chatId, welcomeMessage);
-        
-        return new Response(JSON.stringify({ ok: true }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
 
       // Regular /start - reset conversation state
       await updateConversationState(supabaseAdmin, telegramId, { 
