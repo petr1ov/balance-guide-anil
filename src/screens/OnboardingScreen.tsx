@@ -421,14 +421,14 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
           </div>
 
           <h2 className="text-xl font-display font-bold text-foreground mb-6 text-center">
-            {getText(`onboarding.${step.replace("birth_", "birth")}Title`)}
+            {getText(`onboarding.${step}Title`)}
           </h2>
 
           <Input
             type="text"
             value={getValue()}
             onChange={(e) => setValue(e.target.value)}
-            placeholder={getText(`onboarding.${step.replace("birth_", "birth")}Placeholder`)}
+            placeholder={getText(`onboarding.${step}Placeholder`)}
             className="max-w-sm text-center text-lg"
           />
         </div>
