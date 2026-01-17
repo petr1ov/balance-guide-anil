@@ -48,6 +48,8 @@ const MESSAGES: Record<string, {
   openApp: string;
   pointBPrompt: string;
   onboardingNotComplete: string;
+  pointBWelcomeJyotish: string;
+  pointBWelcomeFast: string;
 }> = {
   ru: {
     welcome: "👋 Добро пожаловать в Balance Mentor",
@@ -56,6 +58,8 @@ const MESSAGES: Record<string, {
     openApp: "🌈 Открыть Balance Mentor",
     pointBPrompt: "Теперь давай поговорим о твоей точке B.\n\nОпиши голосом или текстом, каким ты хочешь видеть свою жизнь в сфере «{sphere}», когда баланс будет идеальным.\n\nМожешь говорить свободно, я слушаю 🎙",
     onboardingNotComplete: "Для начала работы с балансом, пожалуйста, открой приложение и пройди оценку сфер жизни.",
+    pointBWelcomeJyotish: "🔮 Я посмотрел твою карту\n\nТеперь давай сформируем точку B, чтобы рекомендации были максимально точными 🌟\n\nОпиши голосом или текстом, как ты видишь идеальное состояние в сфере «{sphere}».\n\nМожешь говорить свободно, я слушаю 🎙",
+    pointBWelcomeFast: "🎯 Отлично! Ты оценил свой баланс.\n\nТеперь давай определим твою точку B — идеальный результат.\n\nОпиши голосом или текстом, как ты хочешь, чтобы выглядела сфера «{sphere}» в идеале.\n\nМожешь говорить свободно, я слушаю 🎙",
   },
   en: {
     welcome: "👋 Welcome to Balance Mentor",
@@ -64,6 +68,8 @@ const MESSAGES: Record<string, {
     openApp: "🌈 Open Balance Mentor",
     pointBPrompt: "Now let's talk about your Point B.\n\nDescribe by voice or text what you want your life to look like in «{sphere}» when your balance is perfect.\n\nFeel free to speak openly, I'm listening 🎙",
     onboardingNotComplete: "To start working on your balance, please open the app and complete the life areas assessment.",
+    pointBWelcomeJyotish: "🔮 I've looked at your chart\n\nNow let's define your Point B so my recommendations can be more precise 🌟\n\nDescribe by voice or text how you envision the ideal state in «{sphere}».\n\nFeel free to speak openly, I'm listening 🎙",
+    pointBWelcomeFast: "🎯 Great! You've assessed your balance.\n\nNow let's define your Point B — your ideal outcome.\n\nDescribe by voice or text what you want «{sphere}» to look like in your ideal life.\n\nFeel free to speak openly, I'm listening 🎙",
   },
   hi: {
     welcome: "👋 Balance Mentor में आपका स्वागत है",
@@ -72,6 +78,8 @@ const MESSAGES: Record<string, {
     openApp: "🌈 Balance Mentor खोलें",
     pointBPrompt: "अब आपके बिंदु B के बारे में बात करते हैं।\n\nवॉयस या टेक्स्ट से बताएं कि आप «{sphere}» क्षेत्र में अपना जीवन कैसा देखना चाहते हैं जब आपका संतुलन सही हो।\n\nबेझिझक बोलें, मैं सुन रहा हूं 🎙",
     onboardingNotComplete: "अपने संतुलन पर काम शुरू करने के लिए, कृपया ऐप खोलें और जीवन क्षेत्रों का मूल्यांकन पूरा करें।",
+    pointBWelcomeJyotish: "🔮 मैंने आपकी कुंडली देखी\n\nअब चलिए आपका बिंदु B तय करें ताकि मेरी सिफारिशें ज़्यादा सटीक हों 🌟\n\nवॉयस या टेक्स्ट से बताएं कि आप «{sphere}» में आदर्श स्थिति कैसी देखते हैं।\n\nबेझिझक बोलें, मैं सुन रहा हूं 🎙",
+    pointBWelcomeFast: "🎯 बढ़िया! आपने अपना संतुलन जांचा।\n\nअब चलिए आपका बिंदु B तय करें — आपका आदर्श परिणाम।\n\nवॉयस या टेक्स्ट से बताएं कि आप «{sphere}» को अपने आदर्श जीवन में कैसा देखना चाहते हैं।\n\nबेझिझक बोलें, मैं सुन रहा हूं 🎙",
   },
 };
 
@@ -1075,11 +1083,65 @@ serve(async (req) => {
       const fullName = `${firstName} ${lastName}`.trim() || "User";
       
       // Check for deep link payload
-      const deepLinkPayload = update.message.text.replace("/start ", "").trim();
+      const deepLinkPayload = update.message.text.replace("/start", "").trim();
 
-      console.log(`/start from user ${telegramId} (${fullName}), payload: ${deepLinkPayload}`);
+      console.log(`/start from user ${telegramId} (${fullName}), payload: "${deepLinkPayload}"`);
 
-      // Reset conversation state
+      // Handle point_b deep link - user completed onboarding in Mini App
+      if (deepLinkPayload === "point_b") {
+        // Get user profile to check mode and language
+        const profile = await getUserProfile(supabaseAdmin, telegramId);
+        
+        if (!profile) {
+          // No profile, send to language selection
+          const welcomeText = `${MESSAGES.en.welcome}\n\n${MESSAGES.en.chooseLanguage}`;
+          await sendMessage(chatId, welcomeText, {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: "🇷🇺 Русский", callback_data: "lang_ru" }],
+                [{ text: "🇬🇧 English", callback_data: "lang_en" }],
+                [{ text: "🇮🇳 हिन्दी", callback_data: "lang_hi" }],
+              ],
+            },
+          });
+          return new Response(JSON.stringify({ ok: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const userLang = profile.language || "ru";
+        const userMode = profile.mode || "fast";
+        const messages = MESSAGES[userLang] || MESSAGES.en;
+        
+        // Get the first sphere for Point B
+        const firstSphere = SPHERES[0];
+        const sphereName = firstSphere[userLang as keyof typeof firstSphere] || firstSphere.en;
+        
+        // Choose message based on mode
+        const welcomeMessage = userMode === "jyotish" 
+          ? messages.pointBWelcomeJyotish.replace("{sphere}", sphereName)
+          : messages.pointBWelcomeFast.replace("{sphere}", sphereName);
+        
+        // Set conversation state to Point B for first sphere
+        await updateConversationState(supabaseAdmin, telegramId, {
+          stage: STAGES.POINT_B,
+          current_sphere_index: 0,
+          point_a_index: 0,
+          point_b_index: 0,
+          scores: {},
+        });
+        
+        // Track the event
+        await trackEvent(supabaseAdmin, telegramId, "point_b_started", { mode: userMode, source: "deep_link" });
+        
+        await sendMessage(chatId, welcomeMessage);
+        
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Regular /start - reset conversation state
       await updateConversationState(supabaseAdmin, telegramId, { 
         stage: STAGES.IDLE, 
         current_sphere_index: 0,
@@ -1088,8 +1150,7 @@ serve(async (req) => {
         point_b_index: 0,
       });
 
-      // If deep link is "balance", skip to mode selection after language
-      // For now, show language selection first
+      // Show language selection
       const welcomeText = `${MESSAGES.en.welcome}\n\n${MESSAGES.en.chooseLanguage}`;
       
       await sendMessage(chatId, welcomeText, {

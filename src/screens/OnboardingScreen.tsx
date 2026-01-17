@@ -208,14 +208,8 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
   };
 
   const handleReturnToTelegram = () => {
-    // Try to close the Mini App first
-    const tg = (window as unknown as { Telegram?: { WebApp?: { close: () => void } } }).Telegram?.WebApp;
-    if (tg?.close) {
-      tg.close();
-    } else {
-      // Fallback: use the centralized deep link utility to open the bot
-      openTelegramBot("onboarding_complete");
-    }
+    // Use deep link to trigger Point B conversation flow in the bot
+    openTelegramBot("point_b");
   };
 
   // Mode selection screen

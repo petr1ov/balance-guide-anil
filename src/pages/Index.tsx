@@ -279,7 +279,6 @@ const Index = () => {
           <HomeScreen
             scores={scores}
             language={language as Language}
-            onUpdateScores={handleUpdateScores}
             onSectorClick={handleSectorClick}
           />
         );
