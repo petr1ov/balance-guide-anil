@@ -48,6 +48,17 @@ const Index = () => {
     }
   }, [telegramUser, userName]);
 
+  // Handle startapp deep link for notifications
+  useEffect(() => {
+    const webApp = (window as unknown as { Telegram?: { WebApp?: { initDataUnsafe?: { start_param?: string } } } }).Telegram?.WebApp;
+    const startParam = webApp?.initDataUnsafe?.start_param;
+    
+    if (startParam === "notifications" || startParam === "settings_notifications") {
+      // Open notifications screen directly
+      setSubScreen("reminders");
+    }
+  }, []);
+
   // Fetch user data on mount
   useEffect(() => {
     const fetchUserData = async () => {
