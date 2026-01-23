@@ -180,35 +180,45 @@ serve(async (req) => {
         
         if (!isWithinWindow(localTime, time)) continue;
 
-        // Check if already sent today
-        const { data: existingLog } = await supabase
+        // Atomic insert with conflict handling to prevent race conditions
+        // This prevents duplicates even when multiple instances run in parallel
+        const { data: insertedLog, error: insertError } = await supabase
           .from("reminder_logs")
-          .select("id")
-          .eq("user_id", reminder.user_id)
-          .eq("reminder_type", type)
-          .eq("sent_date", localDate)
-          .single();
-
-        if (existingLog) {
-          skippedCount++;
-          continue;
-        }
-
-        // Get message text
-        const getMessage = MESSAGES[type as keyof typeof MESSAGES];
-        const messageText = getMessage(focusArea);
-
-        // Send message
-        const sent = await sendTelegramMessage(reminder.telegram_id, messageText);
-
-        if (sent) {
-          // Log the send
-          await supabase.from("reminder_logs").insert({
+          .insert({
             user_id: reminder.user_id,
             reminder_type: type,
             sent_date: localDate,
-          });
+          })
+          .select("id")
+          .single();
+
+        // If insert failed due to unique constraint, skip (already sent)
+        if (insertError) {
+          if (insertError.code === "23505") {
+            // Unique violation - already sent today
+            skippedCount++;
+            continue;
+          }
+          console.error(`Error inserting reminder log:`, insertError);
+          continue;
+        }
+
+        // Log was inserted successfully, now send the message
+        const getMessage = MESSAGES[type as keyof typeof MESSAGES];
+        const messageText = getMessage(focusArea);
+
+        const sent = await sendTelegramMessage(reminder.telegram_id, messageText);
+
+        if (sent) {
           sentCount++;
+          console.log(`Sent ${type} reminder to user ${reminder.user_id}`);
+        } else {
+          // If message failed to send, delete the log so it can be retried
+          await supabase
+            .from("reminder_logs")
+            .delete()
+            .eq("id", insertedLog.id);
+          console.error(`Failed to send ${type} reminder, log deleted for retry`);
         }
       }
     }
