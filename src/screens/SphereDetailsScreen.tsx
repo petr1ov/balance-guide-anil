@@ -1,4 +1,4 @@
-import { ArrowLeft, MapPin, Target, Calendar, Sparkles, Heart, Leaf, Coins, Briefcase, Smile, Users, MessageCircle, Mic } from "lucide-react";
+import { ArrowLeft, MapPin, Target, Calendar, Sparkles, Heart, Leaf, Coins, Briefcase, Smile, Users, MessageCircle, Mic, TrendingUp } from "lucide-react";
 import { useTranslation, Language } from "@/lib/i18n";
 import { openTelegramBot } from "@/lib/telegram";
 
@@ -15,6 +15,7 @@ interface SphereDetailsScreenProps {
   detail: SphereDetail | null;
   language: Language;
   onBack: () => void;
+  onOpenProgress?: () => void;
 }
 
 const SPHERE_CONFIG: Record<string, { icon: typeof Sparkles; color: string; iconColor: string }> = {
@@ -27,7 +28,7 @@ const SPHERE_CONFIG: Record<string, { icon: typeof Sparkles; color: string; icon
   environment: { icon: Users, color: "bg-relationships/20", iconColor: "text-relationships-dark" },
 };
 
-const SphereDetailsScreen = ({ sphere, detail, language, onBack }: SphereDetailsScreenProps) => {
+const SphereDetailsScreen = ({ sphere, detail, language, onBack, onOpenProgress }: SphereDetailsScreenProps) => {
   const { t } = useTranslation(language);
   
   const config = SPHERE_CONFIG[sphere] || SPHERE_CONFIG.spirituality;
@@ -79,6 +80,18 @@ const SphereDetailsScreen = ({ sphere, detail, language, onBack }: SphereDetails
             </div>
           </div>
         </div>
+
+        {/* Progress Button */}
+        {onOpenProgress && (
+          <button
+            onClick={onOpenProgress}
+            className="w-full flex items-center justify-center gap-2 py-4 px-4 bg-gradient-to-r from-primary/10 to-primary/5 hover:from-primary/20 hover:to-primary/10 border border-primary/20 rounded-2xl transition-all animate-fade-in-up"
+            style={{ animationDelay: "50ms" }}
+          >
+            <TrendingUp className="w-5 h-5 text-primary" />
+            <span className="font-medium text-foreground">{t("sphere.progress")}</span>
+          </button>
+        )}
 
         {/* Point A - Current State */}
         <div className="bg-card rounded-2xl p-5 shadow-soft border border-border/50 animate-fade-in-up" style={{ animationDelay: "100ms" }}>

@@ -26,6 +26,7 @@ const MEANINGFUL_EVENTS = [
   "point_b_started",
   "mode_selected",
   "notification_enabled",
+  "astrology_frequency_selected",
 ];
 
 // Event display configuration
@@ -67,6 +68,13 @@ const getEventConfig = (event: string, metadata: unknown, language: Language) =>
   const sphereName = sphere ? sphereNames[language][sphere] || sphere : "";
   const score = meta.score as number | undefined;
   const mode = meta.mode as string | undefined;
+  const frequency = meta.frequency as string | undefined;
+
+  const frequencyLabels: Record<Language, Record<string, string>> = {
+    ru: { daily: "Каждый день", weekly: "Раз в неделю", monthly: "Раз в месяц" },
+    en: { daily: "Daily", weekly: "Weekly", monthly: "Monthly" },
+    hi: { daily: "रोज़", weekly: "साप्ताहिक", monthly: "मासिक" },
+  };
 
   const configs: Record<Language, Record<string, { icon: typeof TrendingUp; color: string; title: string; description: string }>> = {
     ru: {
@@ -104,13 +112,19 @@ const getEventConfig = (event: string, metadata: unknown, language: Language) =>
         icon: CheckCircle2,
         color: "text-indigo-500 bg-indigo-500/20",
         title: "Выбран режим",
-        description: mode === "jyotish" ? "Режим с Джйотиш" : "Быстрый старт",
+        description: mode === "astrology" || mode === "jyotish" ? "Режим с астрологией" : "Быстрый старт",
       },
       notification_enabled: {
         icon: Bell,
         color: "text-orange-500 bg-orange-500/20",
         title: "Уведомления включены",
         description: "Настроены напоминания",
+      },
+      astrology_frequency_selected: {
+        icon: Star,
+        color: "text-purple-500 bg-purple-500/20",
+        title: "Частота астрологии",
+        description: frequency ? frequencyLabels.ru[frequency] || frequency : "",
       },
     },
     en: {
@@ -148,13 +162,19 @@ const getEventConfig = (event: string, metadata: unknown, language: Language) =>
         icon: CheckCircle2,
         color: "text-indigo-500 bg-indigo-500/20",
         title: "Mode Selected",
-        description: mode === "jyotish" ? "Jyotish mode" : "Quick start",
+        description: mode === "astrology" || mode === "jyotish" ? "Astrology mode" : "Quick start",
       },
       notification_enabled: {
         icon: Bell,
         color: "text-orange-500 bg-orange-500/20",
         title: "Notifications Enabled",
         description: "Reminders configured",
+      },
+      astrology_frequency_selected: {
+        icon: Star,
+        color: "text-purple-500 bg-purple-500/20",
+        title: "Astrology Frequency",
+        description: frequency ? frequencyLabels.en[frequency] || frequency : "",
       },
     },
     hi: {
@@ -192,13 +212,19 @@ const getEventConfig = (event: string, metadata: unknown, language: Language) =>
         icon: CheckCircle2,
         color: "text-indigo-500 bg-indigo-500/20",
         title: "मोड चुना गया",
-        description: mode === "jyotish" ? "ज्योतिष मोड" : "त्वरित शुरुआत",
+        description: mode === "astrology" || mode === "jyotish" ? "ज्योतिष मोड" : "त्वरित शुरुआत",
       },
       notification_enabled: {
         icon: Bell,
         color: "text-orange-500 bg-orange-500/20",
         title: "सूचनाएं सक्षम",
         description: "अनुस्मारक कॉन्फ़िगर किए गए",
+      },
+      astrology_frequency_selected: {
+        icon: Star,
+        color: "text-purple-500 bg-purple-500/20",
+        title: "ज्योतिष आवृत्ति",
+        description: frequency ? frequencyLabels.hi[frequency] || frequency : "",
       },
     },
   };
@@ -320,7 +346,7 @@ const ProgressHistoryScreen = ({ language, onBack }: ProgressHistoryScreenProps)
                   <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-border" />
 
                   <div className="space-y-4">
-                    {dayEvents.map((event, idx) => {
+                    {dayEvents.map((event) => {
                       const config = getEventConfig(event.event, event.metadata, language);
                       const Icon = config.icon;
                       

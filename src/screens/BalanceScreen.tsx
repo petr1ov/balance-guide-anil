@@ -8,10 +8,10 @@ interface BalanceScreenProps {
   language: Language;
   onSectorClick: (sector: SphereKey) => void;
   highlightedSpheres?: SphereKey[];
-  isJyotishMode?: boolean;
+  isAstrologyMode?: boolean;
 }
 
-const BalanceScreen = ({ scores, language, onSectorClick, highlightedSpheres = [], isJyotishMode = false }: BalanceScreenProps) => {
+const BalanceScreen = ({ scores, language, onSectorClick, highlightedSpheres = [], isAstrologyMode = false }: BalanceScreenProps) => {
   const sectors = [
     {
       key: "spirituality" as const,
@@ -57,8 +57,8 @@ const BalanceScreen = ({ scores, language, onSectorClick, highlightedSpheres = [
         </p>
       </div>
 
-      {/* Jyotish hint */}
-      {isJyotishMode && highlightedSpheres.length > 0 && (
+      {/* Astrology hint */}
+      {isAstrologyMode && highlightedSpheres.length > 0 && (
         <div className="mx-6 mb-2 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200 dark:border-amber-800 animate-fade-in">
           <p className="text-sm text-amber-700 dark:text-amber-300 flex items-center gap-2">
             <span>🔮</span>
@@ -77,7 +77,7 @@ const BalanceScreen = ({ scores, language, onSectorClick, highlightedSpheres = [
           scores={scores} 
           onSectorClick={onSectorClick}
           highlightedSpheres={highlightedSpheres}
-          isJyotishMode={isJyotishMode}
+          isAstrologyMode={isAstrologyMode}
         />
       </div>
 
@@ -91,7 +91,7 @@ const BalanceScreen = ({ scores, language, onSectorClick, highlightedSpheres = [
           const Icon = sector.icon;
           const score = scores[sector.key];
           const label = t(`sector.${sector.key}`, language);
-          const isHighlighted = isJyotishMode && highlightedSpheres.includes(sector.key);
+          const isHighlighted = isAstrologyMode && highlightedSpheres.includes(sector.key);
           
           return (
             <button

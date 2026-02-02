@@ -230,6 +230,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          astrology_frequency: string | null
           birth_city: string | null
           birth_country: string | null
           birth_date: string | null
@@ -246,6 +247,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          astrology_frequency?: string | null
           birth_city?: string | null
           birth_country?: string | null
           birth_date?: string | null
@@ -262,6 +264,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          astrology_frequency?: string | null
           birth_city?: string | null
           birth_country?: string | null
           birth_date?: string | null
@@ -402,7 +405,9 @@ export type Database = {
           price_usd: number | null
           started_at: string
           status: string
+          subscription_type: string | null
           telegram_id: string | null
+          trial_ends_at: string | null
           updated_at: string
           user_id: string | null
         }
@@ -418,7 +423,9 @@ export type Database = {
           price_usd?: number | null
           started_at?: string
           status?: string
+          subscription_type?: string | null
           telegram_id?: string | null
+          trial_ends_at?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -434,7 +441,9 @@ export type Database = {
           price_usd?: number | null
           started_at?: string
           status?: string
+          subscription_type?: string | null
           telegram_id?: string | null
+          trial_ends_at?: string | null
           updated_at?: string
           user_id?: string | null
         }
