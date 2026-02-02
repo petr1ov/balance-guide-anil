@@ -36,7 +36,7 @@ const Index = () => {
   const [highlightedSpheres, setHighlightedSpheres] = useState<SphereKey[]>([]);
   const [focusArea, setFocusArea] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>(telegramUser?.first_name || "Пользователь");
-  const [userMode, setUserMode] = useState<"fast" | "jyotish">("fast");
+  const [userMode, setUserMode] = useState<"fast" | "jyotish" | "astrology">("fast");
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
   
   const [scores, setScores] = useState<BalanceScores>(DEFAULT_SCORES);
@@ -300,7 +300,7 @@ const Index = () => {
             language={language as Language}
             onSectorClick={handleSectorClick}
             highlightedSpheres={highlightedSpheres}
-            isJyotishMode={userMode === "jyotish"}
+            isAstrologyMode={userMode === "jyotish" || userMode === "astrology"}
           />
         );
       case "profile":

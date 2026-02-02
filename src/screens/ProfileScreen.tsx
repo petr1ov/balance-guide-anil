@@ -1,4 +1,4 @@
-import { Settings, RefreshCw, Target, TrendingUp, Globe, Bell, Sparkles, Zap } from "lucide-react";
+import { Settings, RefreshCw, Target, TrendingUp, Globe, Bell, Sparkles, Zap, CreditCard } from "lucide-react";
 import { useTranslation, Language } from "@/lib/i18n";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -7,12 +7,15 @@ interface ProfileScreenProps {
   focusArea?: string;
   language: Language;
   avatarUrl?: string;
-  mode?: "fast" | "jyotish";
+  mode?: "fast" | "astrology" | "jyotish";
+  subscriptionType?: "free" | "pro";
+  subscriptionExpiresAt?: string | null;
   onReassessBalance: () => void;
   onOpenReminders: () => void;
   onOpenLanguage: () => void;
   onOpenHistory: () => void;
   onChangeMode?: () => void;
+  onOpenSubscription?: () => void;
 }
 
 const LANGUAGE_LABELS: Record<Language, string> = {
@@ -27,18 +30,35 @@ const ProfileScreen = ({
   language,
   avatarUrl,
   mode = "fast",
+  subscriptionType = "free",
+  subscriptionExpiresAt,
   onReassessBalance, 
   onOpenReminders,
   onOpenLanguage,
   onOpenHistory,
   onChangeMode,
+  onOpenSubscription,
 }: ProfileScreenProps) => {
   const { t } = useTranslation(language);
 
   const modeLabels = {
     fast: { ru: "Быстрый старт", en: "Quick Start", hi: "त्वरित शुरुआत" },
-    jyotish: { ru: "С Джйотиш", en: "With Jyotish", hi: "ज्योतिष के साथ" },
+    astrology: { ru: "С астрологией", en: "With Astrology", hi: "ज्योतिष के साथ" },
+    jyotish: { ru: "С астрологией", en: "With Astrology", hi: "ज्योतिष के साथ" },
   };
+
+  // Calculate days left for subscription
+  const getDaysLeft = () => {
+    if (!subscriptionExpiresAt) return 0;
+    const expiresAt = new Date(subscriptionExpiresAt);
+    const now = new Date();
+    const diffTime = expiresAt.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays);
+  };
+
+  const daysLeft = getDaysLeft();
+  const isExpired = daysLeft <= 0;
 
   return (
     <div className="min-h-screen bg-background pb-28 safe-top">
@@ -69,12 +89,12 @@ const ProfileScreen = ({
           {/* Mode Badge */}
           <div className="mt-4 flex items-center gap-2">
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
-              mode === "jyotish" 
+              mode === "astrology" || mode === "jyotish"
                 ? "bg-spirituality/20 text-spirituality-dark" 
                 : "bg-primary/10 text-primary"
             }`}>
-              {mode === "jyotish" ? <Sparkles className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
-              {modeLabels[mode][language]}
+              {mode === "astrology" || mode === "jyotish" ? <Sparkles className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
+              {modeLabels[mode]?.[language] || modeLabels.fast[language]}
             </div>
             {onChangeMode && (
               <button 
@@ -82,6 +102,49 @@ const ProfileScreen = ({
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 {language === "ru" ? "Изменить" : language === "hi" ? "बदलें" : "Change"}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Subscription Card */}
+        <div 
+          className="bg-card rounded-2xl p-5 shadow-soft border border-border/50 animate-fade-in-up cursor-pointer hover:bg-secondary/30 transition-colors"
+          style={{ animationDelay: "50ms" }}
+          onClick={onOpenSubscription}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                subscriptionType === "pro" 
+                  ? "bg-amber-500/20" 
+                  : isExpired 
+                    ? "bg-red-500/20" 
+                    : "bg-blue-500/20"
+              }`}>
+                <CreditCard className={`w-5 h-5 ${
+                  subscriptionType === "pro" 
+                    ? "text-amber-500" 
+                    : isExpired 
+                      ? "text-red-500" 
+                      : "text-blue-500"
+                }`} />
+              </div>
+              <div>
+                <p className="font-medium text-foreground">
+                  {subscriptionType === "pro" ? t("profile.pro") : t("profile.freeTrial")}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {isExpired 
+                    ? t("profile.expired")
+                    : `${daysLeft} ${t("profile.daysLeft")}`
+                  }
+                </p>
+              </div>
+            </div>
+            {(subscriptionType === "free" || isExpired) && (
+              <button className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium">
+                {t("profile.upgrade")}
               </button>
             )}
           </div>

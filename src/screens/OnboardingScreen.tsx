@@ -2,13 +2,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, ChevronRight, Sparkles, Zap, Calendar, Clock, MapPin, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles, Zap, Calendar, Clock, MapPin, Check, Sun, CalendarDays, Moon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTelegramAuth } from "@/contexts/TelegramAuthContext";
 import { Language, t } from "@/lib/i18n";
 import { BalanceScores, SphereKey, SPHERE_KEYS } from "@/types/balance";
 import { trackEvent } from "@/lib/analytics";
 import { openTelegramBot } from "@/lib/telegram";
+
 interface OnboardingScreenProps {
   language: Language;
   onComplete: () => void;
@@ -16,12 +17,15 @@ interface OnboardingScreenProps {
 
 type OnboardingStep = 
   | "mode" 
+  | "astrology_frequency"
   | "scoring" 
   | "birth_date" 
   | "birth_time" 
   | "birth_country" 
   | "birth_city" 
   | "complete";
+
+type AstrologyFrequency = "daily" | "weekly" | "monthly";
 
 const SPHERES_INFO: Record<SphereKey, { icon: string; colors: string }> = {
   spirituality: { icon: "🧘", colors: "from-[#B9B7FF] to-[#8B8AF8]" },
@@ -33,7 +37,8 @@ const SPHERES_INFO: Record<SphereKey, { icon: string; colors: string }> = {
 const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
   const { user } = useTelegramAuth();
   const [step, setStep] = useState<OnboardingStep>("mode");
-  const [mode, setMode] = useState<"fast" | "jyotish" | null>(null);
+  const [mode, setMode] = useState<"fast" | "astrology" | null>(null);
+  const [astrologyFrequency, setAstrologyFrequency] = useState<AstrologyFrequency>("weekly");
   const [currentSphereIndex, setCurrentSphereIndex] = useState(0);
   const [scores, setScores] = useState<BalanceScores>({
     spirituality: 5,
@@ -43,7 +48,7 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
   });
   const [scoredSpheres, setScoredSpheres] = useState<Set<SphereKey>>(new Set());
   
-  // Birth data for Jyotish
+  // Birth data for Astrology
   const [birthDate, setBirthDate] = useState("");
   const [birthTime, setBirthTime] = useState("");
   const [birthCountry, setBirthCountry] = useState("");
@@ -59,10 +64,20 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
   const currentSphere = SPHERE_KEYS[currentSphereIndex];
   const sphereInfo = SPHERES_INFO[currentSphere];
 
-  const handleModeSelect = (selectedMode: "fast" | "jyotish") => {
+  const handleModeSelect = (selectedMode: "fast" | "astrology") => {
     setMode(selectedMode);
-    setStep("scoring");
+    if (selectedMode === "astrology") {
+      setStep("astrology_frequency");
+    } else {
+      setStep("scoring");
+    }
     trackEvent("mode_selected", { mode: selectedMode });
+  };
+
+  const handleFrequencySelect = (frequency: AstrologyFrequency) => {
+    setAstrologyFrequency(frequency);
+    setStep("scoring");
+    trackEvent("astrology_frequency_selected", { frequency });
   };
 
   const handleScoreChange = (value: number[]) => {
@@ -86,7 +101,7 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
       // All spheres scored - track Point A completion
       trackEvent("point_a_completed", { ...scores });
       
-      if (mode === "jyotish") {
+      if (mode === "astrology") {
         setStep("birth_date");
       } else {
         handleSaveAndComplete();
@@ -97,6 +112,8 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
   const handlePrevSphere = () => {
     if (currentSphereIndex > 0) {
       setCurrentSphereIndex(prev => prev - 1);
+    } else if (mode === "astrology") {
+      setStep("astrology_frequency");
     } else {
       setStep("mode");
     }
@@ -130,8 +147,10 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
         onboarding_completed: true,
       };
       
-      // Add birth data if Jyotish mode
-      if (mode === "jyotish") {
+      // Add astrology frequency if astrology mode
+      if (mode === "astrology") {
+        profileUpdate.astrology_frequency = astrologyFrequency;
+        
         if (birthDate) {
           // Parse DD.MM.YYYY to YYYY-MM-DD
           const match = birthDate.match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})/);
@@ -195,8 +214,9 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
       // Track onboarding completed
       trackEvent("onboarding_completed", { 
         mode, 
+        astrology_frequency: mode === "astrology" ? astrologyFrequency : null,
         ...scores,
-        has_birth_data: mode === "jyotish" 
+        has_birth_data: mode === "astrology" 
       });
 
       setStep("complete");
@@ -241,7 +261,7 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
           </button>
           
           <button
-            onClick={() => handleModeSelect("jyotish")}
+            onClick={() => handleModeSelect("astrology")}
             className="w-full p-6 rounded-2xl bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-2 border-purple-400/20 hover:border-purple-400/50 transition-all group"
           >
             <div className="flex items-center gap-4">
@@ -250,13 +270,85 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
               </div>
               <div className="text-left">
                 <h3 className="text-lg font-display font-semibold text-foreground">
-                  {getText("onboarding.jyotishTitle")}
+                  {getText("onboarding.astrologyTitle")}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {getText("onboarding.jyotishDesc")}
+                  {getText("onboarding.astrologyDesc")}
                 </p>
               </div>
             </div>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Astrology frequency selection screen
+  if (step === "astrology_frequency") {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+        <button
+          onClick={() => setStep("mode")}
+          className="absolute top-6 left-6 p-2 rounded-full hover:bg-muted transition-colors"
+        >
+          <ChevronLeft className="w-6 h-6 text-muted-foreground" />
+        </button>
+        
+        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 flex items-center justify-center mb-6">
+          <Sparkles className="w-10 h-10 text-purple-500" />
+        </div>
+        
+        <h1 className="text-xl font-display font-bold text-foreground mb-8 text-center px-4">
+          {getText("onboarding.frequencyTitle")}
+        </h1>
+        
+        <div className="w-full max-w-sm space-y-3">
+          <button
+            onClick={() => handleFrequencySelect("daily")}
+            className={`w-full p-5 rounded-2xl border-2 transition-all flex items-center gap-4 ${
+              astrologyFrequency === "daily" 
+                ? "border-purple-500 bg-purple-500/10" 
+                : "border-border hover:border-purple-300"
+            }`}
+          >
+            <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
+              <Sun className="w-6 h-6 text-amber-500" />
+            </div>
+            <span className="text-lg font-medium text-foreground">
+              {getText("onboarding.frequencyDaily")}
+            </span>
+          </button>
+          
+          <button
+            onClick={() => handleFrequencySelect("weekly")}
+            className={`w-full p-5 rounded-2xl border-2 transition-all flex items-center gap-4 ${
+              astrologyFrequency === "weekly" 
+                ? "border-purple-500 bg-purple-500/10" 
+                : "border-border hover:border-purple-300"
+            }`}
+          >
+            <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
+              <CalendarDays className="w-6 h-6 text-blue-500" />
+            </div>
+            <span className="text-lg font-medium text-foreground">
+              {getText("onboarding.frequencyWeekly")}
+            </span>
+          </button>
+          
+          <button
+            onClick={() => handleFrequencySelect("monthly")}
+            className={`w-full p-5 rounded-2xl border-2 transition-all flex items-center gap-4 ${
+              astrologyFrequency === "monthly" 
+                ? "border-purple-500 bg-purple-500/10" 
+                : "border-border hover:border-purple-300"
+            }`}
+          >
+            <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+              <Moon className="w-6 h-6 text-indigo-500" />
+            </div>
+            <span className="text-lg font-medium text-foreground">
+              {getText("onboarding.frequencyMonthly")}
+            </span>
           </button>
         </div>
       </div>
@@ -347,7 +439,7 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
             disabled={!scoredSpheres.has(currentSphere)}
           >
             {currentSphereIndex === SPHERE_KEYS.length - 1 
-              ? (mode === "jyotish" ? getText("onboarding.next") : getText("onboarding.save"))
+              ? (mode === "astrology" ? getText("onboarding.next") : getText("onboarding.save"))
               : getText("onboarding.next")
             }
             <ChevronRight className="w-5 h-5 ml-2" />
@@ -357,7 +449,7 @@ const OnboardingScreen = ({ language, onComplete }: OnboardingScreenProps) => {
     );
   }
 
-  // Birth data steps (Jyotish only)
+  // Birth data steps (Astrology only)
   if (step === "birth_date" || step === "birth_time" || step === "birth_country" || step === "birth_city") {
     const birthSteps = ["birth_date", "birth_time", "birth_country", "birth_city"];
     const currentBirthStep = birthSteps.indexOf(step) + 1;

@@ -5,10 +5,10 @@ interface BalanceWheelProps {
   scores: BalanceScores;
   onSectorClick?: (sector: keyof BalanceScores) => void;
   highlightedSpheres?: SphereKey[];
-  isJyotishMode?: boolean;
+  isAstrologyMode?: boolean;
 }
 
-const BalanceWheel = ({ scores, onSectorClick, highlightedSpheres = [], isJyotishMode = false }: BalanceWheelProps) => {
+const BalanceWheel = ({ scores, onSectorClick, highlightedSpheres = [], isAstrologyMode = false }: BalanceWheelProps) => {
   const [animatedScores, setAnimatedScores] = useState<BalanceScores>(DEFAULT_SCORES);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -165,8 +165,8 @@ const BalanceWheel = ({ scores, onSectorClick, highlightedSpheres = [], isJyotis
             <feDropShadow dx="0" dy="2" stdDeviation="4" floodOpacity="0.12"/>
           </filter>
 
-          {/* Jyotish glow filter for highlighted spheres */}
-          <filter id="jyotishGlow" x="-100%" y="-100%" width="300%" height="300%">
+          {/* Astrology glow filter for highlighted spheres */}
+          <filter id="astrologyGlow" x="-100%" y="-100%" width="300%" height="300%">
             <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
@@ -180,7 +180,7 @@ const BalanceWheel = ({ scores, onSectorClick, highlightedSpheres = [], isJyotis
         {sectors.map((sector, index) => {
           const score = animatedScores[sector.key];
           const path = createFilledSectorPath(sector.startAngle, score);
-          const isHighlighted = isJyotishMode && highlightedSpheres.includes(sector.key);
+          const isHighlighted = isAstrologyMode && highlightedSpheres.includes(sector.key);
           
           if (!path) return null;
           
@@ -268,7 +268,7 @@ const BalanceWheel = ({ scores, onSectorClick, highlightedSpheres = [], isJyotis
         {/* Icons */}
         {sectors.map((sector, index) => {
           const iconPos = getPosition(sector.midAngle, 115);
-          const isHighlighted = isJyotishMode && highlightedSpheres.includes(sector.key);
+          const isHighlighted = isAstrologyMode && highlightedSpheres.includes(sector.key);
           
           return (
             <g key={`icon-${sector.key}`}>
@@ -284,7 +284,7 @@ const BalanceWheel = ({ scores, onSectorClick, highlightedSpheres = [], isJyotis
               >
                 {sector.icon}
               </text>
-              {/* Jyotish indicator */}
+              {/* Astrology indicator */}
               {isHighlighted && (
                 <text
                   x={iconPos.x + 12}
