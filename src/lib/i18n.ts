@@ -155,14 +155,28 @@ export const translations: Record<Language, Record<string, string>> = {
     "sphere.health": "Здоровье и энергия",
     "sphere.finance": "Финансы",
     
+    // Sphere names for progress screen
+    "spheres.spirituality": "Духовность",
+    "spheres.relationships": "Отношения",
+    "spheres.health": "Здоровье",
+    "spheres.finance": "Финансы",
+    "spheres.career": "Реализация",
+    "spheres.rest": "Отдых",
+    "spheres.environment": "Окружение",
+    
     // Sphere Progress
     "sphereProgress.title": "Прогресс по сфере",
-    "sphereProgress.goal": "🎯 Цель (Точка B)",
+    "sphereProgress.goal": "Цель (Точка B)",
     "sphereProgress.noGoal": "Цель ещё не определена",
-    "sphereProgress.completed": "✅ Выполнено действий",
-    "sphereProgress.remaining": "⏳ Осталось шагов",
+    "sphereProgress.noGoalSet": "Цель не определена. Сформируй её в диалоге с Анилом.",
+    "sphereProgress.completed": "Выполнено",
+    "sphereProgress.remaining": "Осталось",
     "sphereProgress.progress": "📊 Прогресс",
+    "sphereProgress.progressTitle": "Прогресс",
     "sphereProgress.actions": "Действия",
+    "sphereProgress.done": "Выполнено",
+    "sphereProgress.currentScore": "Текущая оценка",
+    "sphereProgress.dailyPlan": "План на сегодня",
     
     // Subscription
     "subscription.title": "Подписка",
@@ -293,14 +307,28 @@ export const translations: Record<Language, Record<string, string>> = {
     "sphere.health": "Health & Energy",
     "sphere.finance": "Finance",
     
+    // Sphere names for progress screen
+    "spheres.spirituality": "Spirituality",
+    "spheres.relationships": "Relationships",
+    "spheres.health": "Health",
+    "spheres.finance": "Finance",
+    "spheres.career": "Career",
+    "spheres.rest": "Rest",
+    "spheres.environment": "Environment",
+    
     // Sphere Progress
     "sphereProgress.title": "Sphere Progress",
-    "sphereProgress.goal": "🎯 Goal (Point B)",
+    "sphereProgress.goal": "Goal (Point B)",
     "sphereProgress.noGoal": "Goal not yet defined",
-    "sphereProgress.completed": "✅ Actions completed",
-    "sphereProgress.remaining": "⏳ Steps remaining",
+    "sphereProgress.noGoalSet": "Goal not set. Define it by chatting with Anil.",
+    "sphereProgress.completed": "Completed",
+    "sphereProgress.remaining": "Remaining",
     "sphereProgress.progress": "📊 Progress",
+    "sphereProgress.progressTitle": "Progress",
     "sphereProgress.actions": "Actions",
+    "sphereProgress.done": "Done",
+    "sphereProgress.currentScore": "Current score",
+    "sphereProgress.dailyPlan": "Today's plan",
     
     // Subscription
     "subscription.title": "Subscription",
@@ -431,14 +459,28 @@ export const translations: Record<Language, Record<string, string>> = {
     "sphere.health": "स्वास्थ्य और ऊर्जा",
     "sphere.finance": "वित्त",
     
+    // Sphere names for progress screen
+    "spheres.spirituality": "आध्यात्मिकता",
+    "spheres.relationships": "रिश्ते",
+    "spheres.health": "स्वास्थ्य",
+    "spheres.finance": "वित्त",
+    "spheres.career": "करियर",
+    "spheres.rest": "आराम",
+    "spheres.environment": "वातावरण",
+    
     // Sphere Progress
     "sphereProgress.title": "क्षेत्र प्रगति",
-    "sphereProgress.goal": "🎯 लक्ष्य (बिंदु B)",
+    "sphereProgress.goal": "लक्ष्य (बिंदु B)",
     "sphereProgress.noGoal": "लक्ष्य अभी तक परिभाषित नहीं",
-    "sphereProgress.completed": "✅ पूर्ण कार्य",
-    "sphereProgress.remaining": "⏳ शेष कदम",
+    "sphereProgress.noGoalSet": "लक्ष्य सेट नहीं है। अनिल से बात करके इसे परिभाषित करें।",
+    "sphereProgress.completed": "पूर्ण",
+    "sphereProgress.remaining": "शेष",
     "sphereProgress.progress": "📊 प्रगति",
+    "sphereProgress.progressTitle": "प्रगति",
     "sphereProgress.actions": "कार्रवाई",
+    "sphereProgress.done": "पूर्ण",
+    "sphereProgress.currentScore": "वर्तमान स्कोर",
+    "sphereProgress.dailyPlan": "आज की योजना",
     
     // Subscription
     "subscription.title": "सदस्यता",
