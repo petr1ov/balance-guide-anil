@@ -5,6 +5,7 @@ import BalanceScreen from "@/screens/BalanceScreen";
 import ProfileScreen from "@/screens/ProfileScreen";
 import ReminderSettingsScreen from "@/screens/ReminderSettingsScreen";
 import SphereDetailsScreen from "@/screens/SphereDetailsScreen";
+import SphereProgressScreen from "@/screens/SphereProgressScreen";
 import LanguageScreen from "@/screens/LanguageScreen";
 import ProgressHistoryScreen from "@/screens/ProgressHistoryScreen";
 import OnboardingScreen from "@/screens/OnboardingScreen";
@@ -16,7 +17,7 @@ import { BalanceScores, DEFAULT_SCORES, SphereKey } from "@/types/balance";
 import { trackEvent } from "@/lib/analytics";
 
 type TabType = "home" | "balance" | "profile";
-type SubScreen = "none" | "reminders" | "sphereDetails" | "language" | "history" | "onboarding";
+type SubScreen = "none" | "reminders" | "sphereDetails" | "sphereProgress" | "language" | "history" | "onboarding";
 
 interface SphereDetail {
   sphere: string;
@@ -222,6 +223,16 @@ const Index = () => {
       return <ReminderSettingsScreen onBack={handleBackFromSubScreen} />;
     }
 
+    if (subScreen === "sphereProgress" && selectedSphere) {
+      return (
+        <SphereProgressScreen
+          sphere={selectedSphere as keyof BalanceScores}
+          language={language as Language}
+          onBack={() => setSubScreen("sphereDetails")}
+        />
+      );
+    }
+
     if (subScreen === "sphereDetails" && selectedSphere) {
       const detail = sphereDetails[selectedSphere] || {
         sphere: selectedSphere,
@@ -233,6 +244,7 @@ const Index = () => {
           detail={detail}
           language={language as Language}
           onBack={handleBackFromSubScreen}
+          onOpenProgress={() => setSubScreen("sphereProgress")}
         />
       );
     }
