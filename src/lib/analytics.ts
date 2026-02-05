@@ -18,7 +18,9 @@ export type EventName =
   | "sphere_details_viewed"
   | "history_viewed"
   | "balance_reassess_started"
-  | "astrology_frequency_selected";
+  | "astrology_frequency_selected"
+  | "subscription_viewed"
+  | "subscription_purchased";
 
 interface EventMetadata {
   [key: string]: string | number | boolean | null | undefined | Record<string, unknown>;

@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.create-robokassa-payment]
 verify_jwt = false
+
+[functions.robokassa-webhook]
+verify_jwt = false
