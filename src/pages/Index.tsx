@@ -9,6 +9,7 @@ import SphereProgressScreen from "@/screens/SphereProgressScreen";
 import LanguageScreen from "@/screens/LanguageScreen";
 import ProgressHistoryScreen from "@/screens/ProgressHistoryScreen";
 import OnboardingScreen from "@/screens/OnboardingScreen";
+import SubscriptionScreen from "@/screens/SubscriptionScreen";
 import { useTelegramAuth } from "@/contexts/TelegramAuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Language, setCurrentLanguage } from "@/lib/i18n";
@@ -17,7 +18,7 @@ import { BalanceScores, DEFAULT_SCORES, SphereKey } from "@/types/balance";
 import { trackEvent } from "@/lib/analytics";
 
 type TabType = "home" | "balance" | "profile";
-type SubScreen = "none" | "reminders" | "sphereDetails" | "sphereProgress" | "language" | "history" | "onboarding";
+type SubScreen = "none" | "reminders" | "sphereDetails" | "sphereProgress" | "language" | "history" | "onboarding" | "subscription";
 
 interface SphereDetail {
   sphere: string;
@@ -39,6 +40,8 @@ const Index = () => {
   const [userName, setUserName] = useState<string>(telegramUser?.first_name || "Пользователь");
   const [userMode, setUserMode] = useState<"fast" | "jyotish" | "astrology">("fast");
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
+  const [subscriptionType, setSubscriptionType] = useState<"free" | "pro">("free");
+  const [subscriptionExpiresAt, setSubscriptionExpiresAt] = useState<string | null>(null);
   
   const [scores, setScores] = useState<BalanceScores>(DEFAULT_SCORES);
 
@@ -147,6 +150,21 @@ const Index = () => {
           setSphereDetails(details);
           setHighlightedSpheres(highlighted);
         }
+
+        // Fetch subscription
+        const { data: subData } = await supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (subData) {
+          setSubscriptionType((subData.plan as "free" | "pro") || "free");
+          setSubscriptionExpiresAt(subData.expires_at || subData.trial_ends_at);
+        }
       } catch (error) {
         console.error("Error fetching user data:", error);
       }
@@ -195,6 +213,11 @@ const Index = () => {
   const handleOpenHistory = () => {
     trackEvent("history_viewed");
     setSubScreen("history");
+  };
+
+  const handleOpenSubscription = () => {
+    trackEvent("subscription_viewed");
+    setSubScreen("subscription");
   };
 
   const handleBackFromSubScreen = () => {
@@ -277,6 +300,17 @@ const Index = () => {
       );
     }
 
+    if (subScreen === "subscription") {
+      return (
+        <SubscriptionScreen
+          language={language as Language}
+          subscriptionType={subscriptionType}
+          expiresAt={subscriptionExpiresAt}
+          onBack={handleBackFromSubScreen}
+        />
+      );
+    }
+
     // If onboarding not completed, show onboarding screen automatically
     if (onboardingCompleted === false) {
       return (
@@ -323,10 +357,13 @@ const Index = () => {
             language={language as Language}
             avatarUrl={telegramUser?.photo_url}
             mode={userMode}
+            subscriptionType={subscriptionType}
+            subscriptionExpiresAt={subscriptionExpiresAt}
             onReassessBalance={handleReassessBalance}
             onOpenReminders={handleOpenReminders}
             onOpenLanguage={handleOpenLanguage}
             onOpenHistory={handleOpenHistory}
+            onOpenSubscription={handleOpenSubscription}
           />
         );
       default:
