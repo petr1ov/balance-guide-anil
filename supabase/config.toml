@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.save-reminder]
 verify_jwt = false
+
+[functions.create-robokassa-payment]
+verify_jwt = false
