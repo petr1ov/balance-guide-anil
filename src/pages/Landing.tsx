@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { 
-  Send, 
-  Target, 
-  MessageCircle, 
-  BarChart3, 
-  Zap, 
+import {
+  Send,
+  Target,
+  MessageCircle,
+  BarChart3,
+  Zap,
   Star,
   Bell,
   Users,
@@ -13,7 +13,7 @@ import {
   Check,
   ArrowRight,
   Sparkles,
-  ChevronDown
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LandingHero from "@/components/landing/LandingHero";
@@ -27,7 +27,7 @@ import LandingPricing from "@/components/landing/LandingPricing";
 import LandingCTA from "@/components/landing/LandingCTA";
 import LandingFooter from "@/components/landing/LandingFooter";
 
-const TELEGRAM_BOT_URL = "https://t.me/balance_guide_bot";
+const TELEGRAM_BOT_URL = "https://t.me/Valueoflife_bot";
 
 const Landing = () => {
   const [scrollY, setScrollY] = useState(0);
@@ -41,11 +41,9 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-[#0a0a14] text-white overflow-x-hidden">
       {/* Floating header */}
-      <header 
+      <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrollY > 50 
-            ? "bg-[#0a0a14]/90 backdrop-blur-xl border-b border-white/5" 
-            : "bg-transparent"
+          scrollY > 50 ? "bg-[#0a0a14]/90 backdrop-blur-xl border-b border-white/5" : "bg-transparent"
         }`}
       >
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -55,7 +53,7 @@ const Landing = () => {
             </div>
             <span className="font-semibold text-lg">Balance Guide</span>
           </div>
-          <Button 
+          <Button
             asChild
             size="sm"
             className="bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 text-white border-0"
