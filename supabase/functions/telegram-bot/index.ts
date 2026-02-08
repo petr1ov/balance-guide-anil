@@ -49,6 +49,8 @@ const MESSAGES: Record<string, {
   pointAWelcome: string;
   pointBWelcome: string;
   onboardingNotComplete: string;
+  consentRequired?: string;
+  consentButton?: string;
 }> = {
   ru: {
     welcome: "👋 Добро пожаловать в Balance Mentor",
@@ -84,6 +86,20 @@ const MESSAGES: Record<string, {
 
 Не спеши. Говори так, как чувствуешь.`,
     onboardingNotComplete: "Для начала работы с балансом, пожалуйста, открой приложение и пройди оценку сфер жизни.",
+    consentRequired: `Перед началом важно ваше согласие 🙏
+
+Нажимая кнопку «Согласен», вы подтверждаете, что:
+• даёте согласие на обработку персональных данных
+• ознакомлены с политикой конфиденциальности
+• соглашаетесь на получение информационных и сервисных уведомлений
+
+🔗 Документы:
+• [Политика обработки персональных данных](https://cloud.mail.ru/public/Mny1/xqg7SXe26)
+• [Согласие на обработку персональных данных](https://cloud.mail.ru/public/n9PR/h4eADBQoi)
+• [Согласие на получение информационной и рекламной рассылки](https://cloud.mail.ru/public/an1n/w3Xewwu9s)
+
+Вы можете отозвать согласие в любой момент в настройках профиля.`,
+    consentButton: "Согласен ✅",
   },
   en: {
     welcome: "👋 Welcome to Balance Mentor",
@@ -1210,7 +1226,73 @@ serve(async (req) => {
 
       const messages = MESSAGES[lang] || MESSAGES.en;
 
-      // Send confirmation message with inline button
+      // For Russian language - show consent message first
+      if (lang === "ru" && messages.consentRequired) {
+        await sendMessage(chatId, messages.consentRequired, {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: messages.consentButton || "Согласен ✅", callback_data: "consent_accept" }],
+            ],
+          },
+        });
+
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // For other languages - show app directly
+      await sendMessage(chatId, messages.languageSet, {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: messages.openApp,
+                web_app: { url: MINI_APP_URL },
+              },
+            ],
+          ],
+        },
+      });
+
+      // Remove any persistent keyboard
+      await sendMessage(chatId, "✨", {
+        reply_markup: { remove_keyboard: true },
+      });
+
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Handle consent acceptance callback (Russian only)
+    if (update.callback_query?.data === "consent_accept") {
+      const callbackQuery = update.callback_query;
+      const chatId = callbackQuery.message.chat.id;
+      const telegramId = callbackQuery.from.id.toString();
+
+      console.log(`Consent accepted by user ${telegramId}`);
+
+      await answerCallbackQuery(callbackQuery.id, "✓ Спасибо!");
+
+      // Save consent to database
+      const consentData = {
+        consent_personal_data: true,
+        consent_at: new Date().toISOString(),
+        consent_version: "v1",
+      };
+
+      await supabaseAdmin
+        .from("profiles")
+        .update(consentData)
+        .eq("telegram_id", telegramId);
+
+      // Track consent event
+      await trackEvent(supabaseAdmin, telegramId, "consent_accepted", { version: "v1" });
+
+      const messages = MESSAGES.ru;
+
+      // Now show the app button
       await sendMessage(chatId, messages.languageSet, {
         reply_markup: {
           inline_keyboard: [
