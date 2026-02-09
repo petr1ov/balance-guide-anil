@@ -46,6 +46,79 @@ function checkRateLimit(userId: string): boolean {
   return true;
 }
 
+// AITunnel API call (OpenAI-compatible)
+async function callAITunnel(messages: { role: string; content: string }[]) {
+  const AITUNNEL_API_KEY = Deno.env.get("AITUNNEL_API_KEY");
+  const AITUNNEL_BASE_URL = Deno.env.get("AITUNNEL_BASE_URL") || "https://api.aitunnel.ru/v1";
+
+  if (!AITUNNEL_API_KEY) {
+    throw new Error("AITUNNEL_API_KEY is not configured");
+  }
+
+  const response = await fetch(`${AITUNNEL_BASE_URL}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${AITUNNEL_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "gemini-2.5-flash",
+      messages,
+      temperature: 0.7,
+      max_tokens: 800,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("AITunnel error:", response.status, errorText);
+    throw new Error(`AITunnel error: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// Track AI usage in database
+async function trackAIUsage(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  model: string,
+  usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+) {
+  try {
+    const { error } = await supabase.from("ai_usage").insert({
+      user_id: userId,
+      usage_type: "chat",
+      model,
+      input_tokens: usage.prompt_tokens ?? 0,
+      output_tokens: usage.completion_tokens ?? 0,
+      total_tokens: usage.total_tokens ?? 0,
+      cost_usd: calculateCost(usage.total_tokens ?? 0, model),
+      metadata: { source: "chat-with-anil" },
+    });
+
+    if (error) {
+      console.error("Failed to track AI usage:", error);
+    }
+  } catch (e) {
+    console.error("Error tracking AI usage:", e);
+  }
+}
+
+// Calculate cost based on model and tokens
+function calculateCost(totalTokens: number, model: string): number {
+  // Pricing per 1K tokens (approximate for Gemini Flash via AITunnel)
+  const pricePerThousand: Record<string, number> = {
+    "gemini-2.5-flash": 0.00035,
+    "gemini-2.5-pro": 0.0015,
+    "gpt-4o-mini": 0.0003,
+    "gpt-4o": 0.005,
+  };
+
+  const price = pricePerThousand[model] ?? 0.0005;
+  return (totalTokens / 1000) * price;
+}
+
 // Get system prompt with optional Jyotish context
 function getSystemPrompt(mode: string = "fast", jyotishSummary?: Record<string, unknown>): string {
   const basePrompt = `Ты — Anil, мудрый, спокойный, поддерживающий ИИ-наставник.
@@ -184,6 +257,11 @@ serve(async (req) => {
       );
     }
 
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
@@ -194,18 +272,17 @@ serve(async (req) => {
       }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     
-    if (claimsError || !claimsData?.claims) {
-      console.error("Auth error:", claimsError);
+    if (userError || !user) {
+      console.error("Auth error:", userError);
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const userId = claimsData.claims.sub as string;
+    const userId = user.id;
     console.log("Authenticated user:", userId);
 
     // Rate limit check
@@ -246,12 +323,6 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
-
     // Fetch user profile to get mode and jyotish summary
     const { data: profile } = await supabase
       .from("profiles")
@@ -269,46 +340,34 @@ serve(async (req) => {
     // Get system prompt with mode and jyotish context
     const systemPrompt = getSystemPrompt(userMode, jyotishSummary);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt + languageContext },
-          ...messages,
-        ],
-        stream: true,
+    const model = "gemini-2.5-flash";
+
+    // Call AITunnel API (non-streaming for usage tracking)
+    const completion = await callAITunnel([
+      { role: "system", content: systemPrompt + languageContext },
+      ...messages,
+    ]);
+
+    const answer = completion.choices?.[0]?.message?.content || "";
+    const usage = completion.usage || {};
+
+    console.log("AITunnel response received, tokens:", usage.total_tokens);
+
+    // Track AI usage in database
+    await trackAIUsage(supabaseAdmin, userId, model, usage);
+
+    // Return response in the same format as before
+    return new Response(
+      JSON.stringify({ 
+        content: answer,
+        usage: {
+          prompt_tokens: usage.prompt_tokens,
+          completion_tokens: usage.completion_tokens,
+          total_tokens: usage.total_tokens,
+        }
       }),
-    });
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Слишком много запросов. Подождите немного и попробуйте снова." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Превышен лимит использования. Обратитесь к администратору." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      return new Response(
-        JSON.stringify({ error: "Не удалось получить ответ. Попробуйте ещё раз." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
-    });
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (error) {
     console.error("Chat error:", error);
     return new Response(

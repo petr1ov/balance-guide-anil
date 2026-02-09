@@ -10,7 +10,8 @@ const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+const AITUNNEL_API_KEY = Deno.env.get("AITUNNEL_API_KEY")!;
+const AITUNNEL_BASE_URL = Deno.env.get("AITUNNEL_BASE_URL") || "https://api.aitunnel.ru/v1";
 
 // Jyotish MCP API endpoint
 const JYOTISH_MCP_URL = "https://server.smithery.ai/@latiftplgu/astrology_mcp/mcp";
@@ -416,6 +417,21 @@ async function trackEvent(supabase: any, telegramId: string, event: string, meta
   }
 }
 
+// Calculate cost based on model and tokens
+function calculateCost(totalTokens: number, model: string): number {
+  // Pricing per 1K tokens (approximate for AITunnel)
+  const pricePerThousand: Record<string, number> = {
+    "gemini-2.5-flash": 0.00035,
+    "gemini-2.5-pro": 0.0015,
+    "whisper-1": 0.006, // per minute, roughly 150 tokens/min
+    "gpt-4o-mini": 0.0003,
+    "gpt-4o": 0.005,
+  };
+
+  const price = pricePerThousand[model] ?? 0.0005;
+  return (totalTokens / 1000) * price;
+}
+
 // Track AI usage for cost monitoring
 // deno-lint-ignore no-explicit-any
 async function trackAIUsage(
@@ -423,19 +439,23 @@ async function trackAIUsage(
   telegramId: string,
   usageType: string,
   model: string,
-  totalTokens?: number,
+  usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number },
   metadata?: Record<string, unknown>
 ) {
   try {
     const profile = await getUserProfile(supabase, telegramId);
     const userId = profile?.id || null;
+    const totalTokens = usage?.total_tokens || 0;
 
     await supabase.from("ai_usage").insert({
       user_id: userId,
       telegram_id: telegramId,
       usage_type: usageType,
       model,
-      total_tokens: totalTokens || null,
+      input_tokens: usage?.prompt_tokens || 0,
+      output_tokens: usage?.completion_tokens || 0,
+      total_tokens: totalTokens,
+      cost_usd: calculateCost(totalTokens, model),
       metadata: metadata || null,
     });
   } catch (err) {
@@ -921,39 +941,50 @@ function detectStageFromAIResponse(response: string, currentState: ConversationS
 
 // deno-lint-ignore no-explicit-any
 async function askAnil(
+  supabase: any,
+  telegramId: string,
   messages: { role: string; content: string }[], 
   userLanguage: string, 
   jyotishSummary?: Record<string, unknown>
 ): Promise<string> {
-  console.log("=== ASKING ANIL ===");
+  console.log("=== ASKING ANIL via AITunnel ===");
   console.log("Messages count:", messages.length);
   console.log("Language:", userLanguage);
   
   const systemPrompt = getSystemPrompt(userLanguage, jyotishSummary);
+  const model = "gemini-2.5-flash";
   
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const response = await fetch(`${AITUNNEL_BASE_URL}/chat/completions`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      Authorization: `Bearer ${AITUNNEL_API_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model,
       messages: [
         { role: "system", content: systemPrompt },
         ...messages,
       ],
-      stream: false,
+      temperature: 0.7,
+      max_tokens: 800,
     }),
   });
   
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("AI Gateway error:", response.status, errorText);
-    throw new Error(`AI Gateway error: ${response.status}`);
+    console.error("AITunnel error:", response.status, errorText);
+    throw new Error(`AITunnel error: ${response.status}`);
   }
   
   const data = await response.json();
+  const usage = data.usage || {};
+  
+  console.log("AITunnel response, tokens:", usage.total_tokens);
+  
+  // Track AI usage
+  await trackAIUsage(supabase, telegramId, "chat", model, usage, { source: "telegram-bot" });
+  
   return data.choices[0]?.message?.content || "Извини, не могу ответить сейчас.";
 }
 
@@ -1353,6 +1384,8 @@ serve(async (req) => {
       const stateForAI = await getConversationState(supabaseAdmin, telegramId);
       
       const aiResponse = await askAnil(
+        supabaseAdmin,
+        telegramId,
         messagesForAI, 
         userLanguage, 
         profile?.jyotish_summary || undefined
@@ -1367,7 +1400,6 @@ serve(async (req) => {
 
       // Track AI message sent
       await trackEvent(supabaseAdmin, telegramId, "ai_message_sent", { source: "text" });
-      await trackAIUsage(supabaseAdmin, telegramId, "chat", "google/gemini-2.5-flash");
 
       // Send response
       await sendMessage(chatId, aiResponse);
@@ -1416,6 +1448,8 @@ serve(async (req) => {
         await saveChatMessage(supabaseAdmin, telegramId, "user", `🎙 ${transcribedText}`);
 
         const aiResponse = await askAnil(
+          supabaseAdmin,
+          telegramId,
           messagesForAI, 
           userLanguage, 
           profile?.jyotish_summary || undefined
@@ -1428,10 +1462,9 @@ serve(async (req) => {
         // Save assistant message
         await saveChatMessage(supabaseAdmin, telegramId, "assistant", aiResponse);
 
-        // Track AI message sent (from voice)
+        // Track AI message sent (from voice) and STT usage
         await trackEvent(supabaseAdmin, telegramId, "ai_message_sent", { source: "voice" });
-        await trackAIUsage(supabaseAdmin, telegramId, "chat", "google/gemini-2.5-flash");
-        await trackAIUsage(supabaseAdmin, telegramId, "stt", "whisper-1");
+        await trackAIUsage(supabaseAdmin, telegramId, "voice_stt", "whisper-1", { total_tokens: 150 });
 
         // Send response
         await sendMessage(chatId, aiResponse);
