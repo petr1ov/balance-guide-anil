@@ -1,6 +1,6 @@
 // Centralized helpers for Telegram Mini App behavior
 
-const TELEGRAM_BOT_URL = "https://t.me/test108_aibot";
+const TELEGRAM_BOT_URL = "https://t.me/Valueoflife_bot";
 
 export function openTelegramBot(payload?: string) {
   const url = payload ? `${TELEGRAM_BOT_URL}?start=${encodeURIComponent(payload)}` : TELEGRAM_BOT_URL;
