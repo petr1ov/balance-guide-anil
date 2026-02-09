@@ -67,7 +67,9 @@ Deno.serve(async (req) => {
     const invId = Date.now();
 
     // Create signature: MerchantLogin:OutSum:InvId:Password1
-    const signatureString = `${ROBOKASSA_MERCHANT_LOGIN}:${amount}:${invId}:${ROBOKASSA_PASSWORD1}`;
+    const signatureString =
+      `${ROBOKASSA_MERCHANT_LOGIN}:${amount}:${invId}:${ROBOKASSA_PASSWORD1}` +
+      `:Shp_userId=${userId}:Shp_telegramId=${telegramId}`;
     const signature = await md5(signatureString);
 
     // Build payment URL
@@ -77,7 +79,11 @@ Deno.serve(async (req) => {
       InvId: invId.toString(),
       Description: description,
       SignatureValue: signature,
-      IsTest: "1", // Set to "1" for test mode
+      IsTest: "1",
+
+      // 🔥 ОБЯЗАТЕЛЬНО ДОБАВИТЬ
+      Shp_userId: userId,
+      Shp_telegramId: telegramId,
     });
 
     // Add custom parameters for webhook
