@@ -67,21 +67,21 @@ Deno.serve(async (req) => {
     const invId = Date.now();
 
     // Create signature: MerchantLogin:OutSum:InvId:Password1
-    const signatureString =
-      `${ROBOKASSA_MERCHANT_LOGIN}:${amount}:${invId}:${ROBOKASSA_PASSWORD1}` +
-      `:Shp_userId=${userId}:Shp_telegramId=${telegramId}`;
-    const signature = await md5(signatureString);
+    const outSum = amount.toFixed(2);
 
-    // Build payment URL
+    const signatureString =
+      `${ROBOKASSA_MERCHANT_LOGIN}:${outSum}:${invId}:${ROBOKASSA_PASSWORD1}` +
+      `:Shp_userId=${userId}:Shp_telegramId=${telegramId}`;
+
+    const signature = (await md5(signatureString)).toLowerCase();
+
     const params = new URLSearchParams({
       MerchantLogin: ROBOKASSA_MERCHANT_LOGIN,
-      OutSum: amount.toString(),
+      OutSum: outSum,
       InvId: invId.toString(),
-      Description: description,
+      Description: encodeURIComponent(description),
       SignatureValue: signature,
       IsTest: "1",
-
-      // 🔥 ОБЯЗАТЕЛЬНО ДОБАВИТЬ
       Shp_userId: userId,
       Shp_telegramId: telegramId,
     });
