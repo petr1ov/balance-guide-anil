@@ -5,112 +5,114 @@ import { encodeHex } from "https://deno.land/std@0.208.0/encoding/hex.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type",
 };
 
-// MD5 hash function using Deno std library
+// ---------- MD5 ----------
 async function md5(message: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(message);
+  const data = new TextEncoder().encode(message);
   const hashBuffer = await crypto.subtle.digest("MD5", data);
-  return encodeHex(new Uint8Array(hashBuffer));
+  return encodeHex(new Uint8Array(hashBuffer)).toLowerCase();
 }
 
+// ---------- Edge Function ----------
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // ENV
     const ROBOKASSA_MERCHANT_LOGIN = Deno.env.get("ROBOKASSA_MERCHANT_LOGIN");
     const ROBOKASSA_PASSWORD1 = Deno.env.get("ROBOKASSA_PASSWORD1");
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 
-    if (!ROBOKASSA_MERCHANT_LOGIN || !ROBOKASSA_PASSWORD1) {
-      throw new Error("Robokassa credentials not configured");
+    if (
+      !ROBOKASSA_MERCHANT_LOGIN ||
+      !ROBOKASSA_PASSWORD1 ||
+      !SUPABASE_URL ||
+      !SUPABASE_ANON_KEY
+    ) {
+      throw new Error("ENV variables not configured");
     }
 
-    // Validate auth
+    // ---------- AUTH ----------
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: corsHeaders }
+      );
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const supabase = createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY,
+      {
+        global: { headers: { Authorization: authHeader } },
+      }
+    );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    const { data: claims, error: claimsError } =
+      await supabase.auth.getClaims(token);
 
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (claimsError || !claims?.claims?.sub) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: corsHeaders }
+      );
     }
 
-    const userId = claimsData.claims.sub as string;
+    const userId = claims.claims.sub;
 
-    // Get user's telegram_id from profile
-    const { data: profile } = await supabase.from("profiles").select("telegram_id").eq("id", userId).single();
+    // ---------- PROFILE ----------
+    const { data: profile, error: profileError } =
+      await supabase
+        .from("profiles")
+        .select("telegram_id")
+        .eq("id", userId)
+        .single();
 
-    const telegramId = profile?.telegram_id;
+    if (profileError || !profile?.telegram_id) {
+      throw new Error("Telegram ID not found");
+    }
 
-    const { amount = 300, description = "Pro подписка на 30 дней" } = await req.json().catch(() => ({}));
+    const telegramId = profile.telegram_id;
 
-    // Generate unique invoice ID
+    // ---------- BODY ----------
+    const body = await req.json().catch(() => ({}));
+    const amount = Number(body.amount ?? 300);
+    const description =
+      body.description ?? "Pro подписка Balance Guide — 30 дней";
+
+    const outSum = amount.toFixed(2);
     const invId = Date.now();
 
-    // Create signature: MerchantLogin:OutSum:InvId:Password1
-    const outSum = amount.toFixed(2);
-
+    // ---------- SIGNATURE ----------
     const signatureString =
       `${ROBOKASSA_MERCHANT_LOGIN}:${outSum}:${invId}:${ROBOKASSA_PASSWORD1}` +
       `:Shp_userId=${userId}:Shp_telegramId=${telegramId}`;
 
-    const signature = (await md5(signatureString)).toLowerCase();
+    const signature = await md5(signatureString);
 
+    // ---------- URL ----------
     const params = new URLSearchParams({
       MerchantLogin: ROBOKASSA_MERCHANT_LOGIN,
       OutSum: outSum,
       InvId: invId.toString(),
-      Description: encodeURIComponent(description),
+      Description: description,
       SignatureValue: signature,
-      IsTest: "1",
+      IsTest: "1", // 🔥 TEST MODE
       Shp_userId: userId,
       Shp_telegramId: telegramId,
     });
 
-    // Add custom parameters for webhook
-    if (userId) {
-      params.append("Shp_userId", userId);
-    }
-    if (telegramId) {
-      params.append("Shp_telegramId", telegramId);
-    }
+    const paymentUrl =
+      `https://auth.robokassa.ru/Merchant/Index.aspx?${params.toString()}`;
 
-    // Recalculate signature with custom params (alphabetically sorted)
-    const shpParams: string[] = [];
-    if (userId) shpParams.push(`Shp_userId=${userId}`);
-    if (telegramId) shpParams.push(`Shp_telegramId=${telegramId}`);
-    shpParams.sort();
-
-    const signatureWithShp =
-      shpParams.length > 0
-        ? `${ROBOKASSA_MERCHANT_LOGIN}:${amount}:${invId}:${ROBOKASSA_PASSWORD1}:${shpParams.join(":")}`
-        : signatureString;
-
-    const finalSignature = await md5(signatureWithShp);
-    params.set("SignatureValue", finalSignature);
-
-    const paymentUrl = `https://auth.robokassa.ru/Merchant/Index.aspx?${params.toString()}`;
-
-    console.log(`Payment URL generated for user ${userId}, invId: ${invId}`);
+    console.log("Robokassa URL:", paymentUrl);
 
     return new Response(
       JSON.stringify({
@@ -121,10 +123,10 @@ Deno.serve(async (req) => {
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      }
     );
   } catch (error) {
-    console.error("Error creating payment:", error);
+    console.error("Payment error:", error);
     return new Response(
       JSON.stringify({
         success: false,
@@ -133,7 +135,7 @@ Deno.serve(async (req) => {
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      }
     );
   }
 });
