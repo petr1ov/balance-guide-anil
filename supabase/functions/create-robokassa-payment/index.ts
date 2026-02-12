@@ -90,7 +90,9 @@ Deno.serve(async (req) => {
 
     const paymentUrl = `https://auth.robokassa.ru/Merchant/Index.aspx?${params.toString()}`;
 
-    console.log("Robokassa URL:", paymentUrl);
+    console.log("=== ROBOKASSA FINAL URL ===");
+    console.log("IsTest param:", params.get("IsTest"));
+    console.log("Full URL:", paymentUrl);
 
     return new Response(
       JSON.stringify({
