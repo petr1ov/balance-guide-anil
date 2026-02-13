@@ -7,21 +7,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// ---------- MD5 ----------
 async function md5(message: string): Promise<string> {
   const data = new TextEncoder().encode(message);
   const hashBuffer = await crypto.subtle.digest("MD5", data);
   return encodeHex(new Uint8Array(hashBuffer)).toLowerCase();
 }
 
-// ---------- Edge Function ----------
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // ENV
     const ROBOKASSA_MERCHANT_LOGIN = Deno.env.get("ROBOKASSA_MERCHANT_LOGIN");
     const ROBOKASSA_PASSWORD1 = Deno.env.get("ROBOKASSA_PASSWORD1");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -31,7 +28,6 @@ Deno.serve(async (req) => {
       throw new Error("ENV variables not configured");
     }
 
-    // ---------- AUTH ----------
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
@@ -50,7 +46,6 @@ Deno.serve(async (req) => {
 
     const userId = claims.claims.sub;
 
-    // ---------- PROFILE ----------
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("telegram_id")
@@ -63,27 +58,43 @@ Deno.serve(async (req) => {
 
     const telegramId = profile.telegram_id;
 
-    // ---------- BODY ----------
+    // Parse body and determine plan
     const body = await req.json().catch(() => ({}));
-    const amount = Number(body.amount ?? 300);
-    const description = body.description ?? "Pro подписка Balance Guide — 30 дней";
+    const plan = body.plan ?? "monthly";
+
+    let amount: number;
+    let description: string;
+
+    if (plan === "yearly") {
+      amount = 2388;
+      description = "Pro подписка Balance Guide — 12 месяцев";
+    } else {
+      amount = 299;
+      description = "Pro подписка Balance Guide — 1 месяц";
+    }
 
     const outSum = amount.toFixed(2);
     const invId = Date.now();
 
-    // ---------- SIGNATURE ----------
-    const signatureString = `${ROBOKASSA_MERCHANT_LOGIN}:${outSum}:${invId}:${ROBOKASSA_PASSWORD1}:Shp_telegramId=${telegramId}:Shp_userId=${userId}`;
+    // Shp params sorted alphabetically
+    const shpParams = [
+      `Shp_plan=${plan}`,
+      `Shp_telegramId=${telegramId}`,
+      `Shp_userId=${userId}`,
+    ];
+    shpParams.sort();
 
+    const signatureString = `${ROBOKASSA_MERCHANT_LOGIN}:${outSum}:${invId}:${ROBOKASSA_PASSWORD1}:${shpParams.join(":")}`;
     const signature = await md5(signatureString);
 
-    // ---------- URL ----------
     const params = new URLSearchParams({
       MerchantLogin: ROBOKASSA_MERCHANT_LOGIN,
       OutSum: outSum,
       InvId: invId.toString(),
       Description: description,
       SignatureValue: signature,
-      IsTest: "1", // 🔥 TEST MODE
+      IsTest: "1",
+      Shp_plan: plan,
       Shp_userId: userId,
       Shp_telegramId: telegramId,
     });
@@ -91,31 +102,18 @@ Deno.serve(async (req) => {
     const paymentUrl = `https://auth.robokassa.ru/Merchant/Index.aspx?${params.toString()}`;
 
     console.log("=== ROBOKASSA FINAL URL ===");
-    console.log("IsTest param:", params.get("IsTest"));
+    console.log("Plan:", plan, "Amount:", outSum, "IsTest:", params.get("IsTest"));
     console.log("Full URL:", paymentUrl);
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        paymentUrl,
-        invId,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      JSON.stringify({ success: true, paymentUrl, invId }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
     console.error("Payment error:", error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });
