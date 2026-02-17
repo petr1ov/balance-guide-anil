@@ -1,10 +1,10 @@
 import { Sparkles, MessageCircle, FileText } from "lucide-react";
 
 const documents = [
-  { label: "Политика конфиденциальности", url: "https://cloud.mail.ru/public/WuxT/VEuhEiRM7" },
   { label: "Договор публичной оферты", url: "https://cloud.mail.ru/public/WuxT/VEuhEiRM7" },
-  { label: "Согласие на обработку персональных данных", url: "https://cloud.mail.ru/public/WuxT/VEuhEiRM7" },
-  { label: "Согласие на получение рассылки", url: "https://cloud.mail.ru/public/WuxT/VEuhEiRM7" },
+  { label: "Согласие на обработку персональных данных", url: "https://cloud.mail.ru/public/n9PR/h4eADBQoi" },
+  { label: "Политика в отношении обработки персональных данных", url: "https://cloud.mail.ru/public/Mny1/xqg7SXe26" },
+  { label: "Согласие на получение информационной и рекламной рассылки", url: "https://cloud.mail.ru/public/an1n/w3Xewwu9s" },
 ];
 
 const LandingFooter = () => {
