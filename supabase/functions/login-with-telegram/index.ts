@@ -163,9 +163,9 @@ serve(async (req) => {
     let userId = signInData?.user?.id;
 
     if (signInError) {
-      console.log("Sign in failed, creating new user:", signInError.message);
+      console.log("Sign in failed, trying to create or update user:", signInError.message);
       
-      // Create new user
+      // Try to create new user
       const { data: signUpData, error: signUpError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
@@ -177,54 +177,86 @@ serve(async (req) => {
       });
 
       if (signUpError) {
-        console.error("Error creating user:", signUpError);
-        return new Response(JSON.stringify({ error: "Failed to create user" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+        if (signUpError.message?.includes("already been registered")) {
+          // User exists but password changed (e.g. bot token rotated)
+          // Find existing user and update password
+          console.log("User exists, updating password...");
+          const { data: listData } = await supabaseAdmin.auth.admin.listUsers();
+          const existingUser = listData?.users?.find((u: any) => u.email === email);
+          
+          if (existingUser) {
+            const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
+              password,
+            });
+            if (updateError) {
+              console.error("Error updating user password:", updateError);
+              return new Response(JSON.stringify({ error: "Failed to update user" }), {
+                status: 500,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              });
+            }
+            
+            // Sign in with updated password
+            const { data: retryData, error: retryError } = await supabaseAdmin.auth.signInWithPassword({ email, password });
+            if (retryError || !retryData.session) {
+              console.error("Error signing in after password update:", retryError);
+              return new Response(JSON.stringify({ error: "Failed to create session" }), {
+                status: 500,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              });
+            }
+            session = retryData.session;
+            userId = retryData.user?.id;
+            console.log("User password updated and signed in:", userId);
+            
+            // Update profile
+            if (userId) {
+              await supabaseAdmin.from("profiles").update({ name: fullName }).eq("id", userId);
+            }
+          } else {
+            console.error("Could not find existing user by email");
+            return new Response(JSON.stringify({ error: "User lookup failed" }), {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        } else {
+          console.error("Error creating user:", signUpError);
+          return new Response(JSON.stringify({ error: "Failed to create user" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } else {
+        userId = signUpData.user?.id;
+        console.log("Created new user:", userId);
 
-      userId = signUpData.user?.id;
-      console.log("Created new user:", userId);
+        // Sign in the new user
+        const { data: newSignInData, error: newSignInError } = await supabaseAdmin.auth.signInWithPassword({ email, password });
+        if (newSignInError || !newSignInData.session) {
+          console.error("Error signing in new user:", newSignInError);
+          return new Response(JSON.stringify({ error: "Failed to create session" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        session = newSignInData.session;
 
-      // Now sign in the new user to get a session
-      const { data: newSignInData, error: newSignInError } = await supabaseAdmin.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (newSignInError || !newSignInData.session) {
-        console.error("Error signing in new user:", newSignInError);
-        return new Response(JSON.stringify({ error: "Failed to create session" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      session = newSignInData.session;
-
-      // Create profile for new user
-      const { error: profileError } = await supabaseAdmin
-        .from("profiles")
-        .insert({
+        // Create profile
+        const { error: profileError } = await supabaseAdmin.from("profiles").insert({
           id: userId,
           telegram_id: telegramId,
           name: fullName,
           language: languageCode === "ru" ? "ru" : languageCode === "hi" ? "hi" : "en",
         });
-
-      if (profileError) {
-        console.error("Error creating profile:", profileError);
+        if (profileError) {
+          console.error("Error creating profile:", profileError);
+        }
       }
     } else {
       console.log("User signed in successfully:", userId);
-      
-      // Update profile with latest info
       if (userId) {
-        await supabaseAdmin
-          .from("profiles")
-          .update({ name: fullName })
-          .eq("id", userId);
+        await supabaseAdmin.from("profiles").update({ name: fullName }).eq("id", userId);
       }
     }
 
