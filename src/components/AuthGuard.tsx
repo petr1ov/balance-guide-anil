@@ -16,7 +16,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const { loading, error, language } = useTelegramAuth();
   const { t } = useTranslation(language as Language);
 
-  // Check if opened outside Telegram
+  // Check if running inside Telegram WebApp
   const inTelegram = isTelegramWebApp();
 
   if (loading) {
@@ -28,26 +28,8 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
-  // If not in Telegram, show message to open via bot
-  if (!inTelegram) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-          <MessageCircle className="w-10 h-10 text-primary" />
-        </div>
-        <h1 className="text-xl font-display font-bold text-foreground mb-3">{t("auth.openInTelegramTitle")}</h1>
-        <p className="text-muted-foreground max-w-sm">{t("auth.openInTelegramDescription")}</p>
-        <a
-          href="https://t.me/Valueoflife_bot"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-6 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold shadow-lg hover:opacity-90 transition-opacity"
-        >
-          {t("auth.openBot")}
-        </a>
-      </div>
-    );
-  }
+  // Allow access outside Telegram for preview/development
+  // TelegramAuthContext already handles demo mode gracefully
 
   if (error) {
     return (
