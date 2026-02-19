@@ -1389,7 +1389,8 @@ serve(async (req) => {
       let profile = await getUserProfile(supabaseAdmin, telegramId);
 
       // Auto-trigger Jyotish MCP if mode=jyotish, birth data exists, but no summary yet
-      if (profile && profile.mode === "jyotish" && !profile.jyotish_summary && profile.birth_date && profile.birth_time && profile.birth_city && profile.birth_country) {
+      const needsJyotish = profile && profile.mode === "jyotish" && profile.birth_date && profile.birth_time && profile.birth_city && profile.birth_country && (!profile.jyotish_summary || (profile.jyotish_summary as Record<string, unknown>).available === false);
+      if (needsJyotish) {
         console.log("=== AUTO-TRIGGERING Jyotish MCP ===");
         const jyotishResult = await callJyotishMCP({
           date: profile.birth_date,
@@ -1472,7 +1473,8 @@ serve(async (req) => {
         let profile = await getUserProfile(supabaseAdmin, telegramId);
 
         // Auto-trigger Jyotish MCP if mode=jyotish, birth data exists, but no summary yet
-        if (profile && profile.mode === "jyotish" && !profile.jyotish_summary && profile.birth_date && profile.birth_time && profile.birth_city && profile.birth_country) {
+        const needsJyotishVoice = profile && profile.mode === "jyotish" && profile.birth_date && profile.birth_time && profile.birth_city && profile.birth_country && (!profile.jyotish_summary || (profile.jyotish_summary as Record<string, unknown>).available === false);
+        if (needsJyotishVoice) {
           console.log("=== AUTO-TRIGGERING Jyotish MCP (voice) ===");
           const jyotishResult = await callJyotishMCP({
             date: profile.birth_date,
