@@ -1386,7 +1386,23 @@ serve(async (req) => {
       // Get current state and language
       const userLanguage = await getUserLanguage(supabaseAdmin, telegramId);
       const currentState = await getConversationState(supabaseAdmin, telegramId);
-      const profile = await getUserProfile(supabaseAdmin, telegramId);
+      let profile = await getUserProfile(supabaseAdmin, telegramId);
+
+      // Auto-trigger Jyotish MCP if mode=jyotish, birth data exists, but no summary yet
+      if (profile && profile.mode === "jyotish" && !profile.jyotish_summary && profile.birth_date && profile.birth_time && profile.birth_city && profile.birth_country) {
+        console.log("=== AUTO-TRIGGERING Jyotish MCP ===");
+        const jyotishResult = await callJyotishMCP({
+          date: profile.birth_date,
+          time: profile.birth_time,
+          country: profile.birth_country,
+          city: profile.birth_city,
+        });
+        if (jyotishResult) {
+          await updateProfileJyotishSummary(supabaseAdmin, telegramId, jyotishResult);
+          profile = await getUserProfile(supabaseAdmin, telegramId); // refresh
+          console.log("Jyotish summary saved successfully");
+        }
+      }
 
       // Process user message and save data based on stage
       await processUserMessage(supabaseAdmin, telegramId, userText, currentState, userLanguage);
@@ -1398,14 +1414,6 @@ serve(async (req) => {
       // Save user message
       await saveChatMessage(supabaseAdmin, telegramId, "user", userText);
 
-      // Get AI response with mode context and state context
-      const birthData = profile ? {
-        date: profile.birth_date,
-        time: profile.birth_time,
-        country: profile.birth_country,
-        city: profile.birth_city,
-      } : undefined;
-      
       // Get the updated state after processing the message
       const stateForAI = await getConversationState(supabaseAdmin, telegramId);
       
@@ -1461,7 +1469,23 @@ serve(async (req) => {
         // Get current state and language
         const userLanguage = await getUserLanguage(supabaseAdmin, telegramId);
         const currentState = await getConversationState(supabaseAdmin, telegramId);
-        const profile = await getUserProfile(supabaseAdmin, telegramId);
+        let profile = await getUserProfile(supabaseAdmin, telegramId);
+
+        // Auto-trigger Jyotish MCP if mode=jyotish, birth data exists, but no summary yet
+        if (profile && profile.mode === "jyotish" && !profile.jyotish_summary && profile.birth_date && profile.birth_time && profile.birth_city && profile.birth_country) {
+          console.log("=== AUTO-TRIGGERING Jyotish MCP (voice) ===");
+          const jyotishResult = await callJyotishMCP({
+            date: profile.birth_date,
+            time: profile.birth_time,
+            country: profile.birth_country,
+            city: profile.birth_city,
+          });
+          if (jyotishResult) {
+            await updateProfileJyotishSummary(supabaseAdmin, telegramId, jyotishResult);
+            profile = await getUserProfile(supabaseAdmin, telegramId);
+            console.log("Jyotish summary saved successfully (voice)");
+          }
+        }
 
         // Process transcribed message and save data based on stage
         await processUserMessage(supabaseAdmin, telegramId, transcribedText, currentState, userLanguage);
