@@ -14,7 +14,8 @@ const AITUNNEL_API_KEY = Deno.env.get("AITUNNEL_API_KEY")!;
 const AITUNNEL_BASE_URL = Deno.env.get("AITUNNEL_BASE_URL") || "https://api.aitunnel.ru/v1";
 
 // Jyotish MCP API endpoint
-const JYOTISH_MCP_URL = "https://server.smithery.ai/@latiftplgu/astrology_mcp/mcp";
+const JYOTISH_MCP_URL = Deno.env.get("JYOTISH_MCP_URL")!;
+const JYOTISH_MCP_API_KEY = Deno.env.get("JYOTISH_MCP_API_KEY") || "";
 
 // Mini App URL
 const MINI_APP_URL = "https://balance-guide-anil.lovable.app";
@@ -570,20 +571,33 @@ async function callJyotishMCP(birthData: {
     };
     
     console.log("MCP request body:", JSON.stringify(requestBody));
+    console.log("JYOTISH_MCP_URL:", JYOTISH_MCP_URL ? "SET" : "NOT SET");
+    console.log("JYOTISH_MCP_API_KEY:", JYOTISH_MCP_API_KEY ? "SET" : "NOT SET");
+
+    if (!JYOTISH_MCP_URL) {
+      console.error("JYOTISH_MCP_URL is not configured!");
+      return createFallbackJyotishSummary(birthData);
+    }
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Accept": "application/json, text/event-stream",
+    };
+    if (JYOTISH_MCP_API_KEY) {
+      headers["Authorization"] = `Bearer ${JYOTISH_MCP_API_KEY}`;
+    }
     
     const response = await fetch(JYOTISH_MCP_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json, text/event-stream"
-      },
+      headers,
       body: JSON.stringify(requestBody),
     });
     
+    console.log("MCP response status:", response.status);
+    
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Jyotish MCP error:", response.status, errorText);
-      // Don't fail completely - return basic summary
+      console.error("MCP error body:", errorText);
       return createFallbackJyotishSummary(birthData);
     }
     
@@ -610,9 +624,10 @@ async function callJyotishMCP(birthData: {
       result = await response.json();
     }
     
-    console.log("Jyotish MCP response:", JSON.stringify(result)?.substring(0, 500));
+    console.log("Jyotish MCP raw response:", JSON.stringify(result)?.substring(0, 1000));
     
     if (result && result.result) {
+      console.log("MCP result.result found, extracting summary");
       return {
         raw_data: result.result,
         summary: extractJyotishSummary(result.result),
@@ -620,6 +635,17 @@ async function callJyotishMCP(birthData: {
       };
     }
     
+    // Check alternative response formats
+    if (result && result.content) {
+      console.log("MCP result.content found (alternative format)");
+      return {
+        raw_data: result.content,
+        summary: extractJyotishSummary(result.content),
+        calculated_at: new Date().toISOString()
+      };
+    }
+    
+    console.warn("MCP response has no result or content field, using fallback. Keys:", result ? Object.keys(result) : "null");
     // Return parsed result or fallback
     return result || createFallbackJyotishSummary(birthData);
   } catch (error) {
