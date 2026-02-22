@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-// MCP SDK removed — using direct HTTP JSON-RPC calls for Deno compatibility
+// Astrology via AITunnel (Gemini) — MCP fully removed
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,10 +14,6 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const AITUNNEL_API_KEY = Deno.env.get("AITUNNEL_API_KEY")!;
 const AITUNNEL_BASE_URL = Deno.env.get("AITUNNEL_BASE_URL") || "https://api.aitunnel.ru/v1";
 
-// Smithery MCP connection
-const MCP_SMITHERY_PROFILE = Deno.env.get("MCP_SMITHERY_PROFILE") || "";
-const MCP_SMITHERY_API_KEY = Deno.env.get("MCP_SMITHERY_API_KEY") || "";
-const JYOTISH_MCP_URL = "https://astrology_mcp--latiftplgu.run.tools";
 
 // Mini App URL
 const MINI_APP_URL = "https://balance-guide-anil.lovable.app";
@@ -538,251 +534,143 @@ async function updateProfileJyotishSummary(supabase: any, telegramId: string, jy
     .eq("telegram_id", telegramId);
 }
 
-// Call Jyotish MCP via direct HTTP JSON-RPC (Deno-compatible, no Node.js SDK)
-async function callJyotishMCP(birthData: {
+// Generate astrology analysis via AITunnel (Gemini)
+async function generateAstrologyAnalysis(birthData: {
   date: string;
   time: string;
   country: string;
   city: string;
 }): Promise<Record<string, unknown> | null> {
-  console.log("Calling Jyotish MCP via HTTP JSON-RPC with birth data:", JSON.stringify(birthData));
-  
+  console.log("=== Generating astrology analysis via AITunnel ===", JSON.stringify(birthData));
+
   try {
-    // Format date for API (convert DD.MM.YYYY to YYYY-MM-DD)
-    const dateParts = birthData.date.split(/[.\-\/]/);
-    let formattedDate = birthData.date;
-    if (dateParts.length === 3) {
-      if (dateParts[0].length <= 2) {
-        formattedDate = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
-      }
-    }
+    const prompt = `Ты профессиональный ведический астролог (джйотиш).
 
-    if (!MCP_SMITHERY_API_KEY) {
-      console.error("MCP_SMITHERY_API_KEY is not configured!");
-      return createFallbackJyotishSummary(birthData);
-    }
+Данные рождения:
+Дата: ${birthData.date}
+Время: ${birthData.time}
+Место: ${birthData.city}, ${birthData.country}
 
-    console.log("MCP_SMITHERY_PROFILE:", MCP_SMITHERY_PROFILE);
-    console.log("MCP_SMITHERY_API_KEY:", MCP_SMITHERY_API_KEY ? "SET (length=" + MCP_SMITHERY_API_KEY.length + ")" : "NOT SET");
-    console.log("JYOTISH_MCP_URL:", JYOTISH_MCP_URL);
+Сформируй структурированный анализ натальной карты.
 
-    // Build the Smithery MCP endpoint URL with profile
-    const mcpEndpoint = MCP_SMITHERY_PROFILE 
-      ? `${JYOTISH_MCP_URL}?profile=${encodeURIComponent(MCP_SMITHERY_PROFILE)}`
-      : JYOTISH_MCP_URL;
+Верни строго JSON без какого-либо текста вне JSON:
 
-    // Step 1: Initialize MCP session
-    console.log("Initializing MCP session at:", mcpEndpoint);
-    const initResponse = await fetch(mcpEndpoint, {
+{
+  "ascendant": "название восходящего знака",
+  "moon_sign": "лунный знак",
+  "key_planetary_influences": ["влияние 1", "влияние 2", "влияние 3"],
+  "sphere_analysis": {
+    "spirituality": "краткий анализ для сферы духовности",
+    "relationships": "краткий анализ для сферы отношений",
+    "health": "краткий анализ для сферы здоровья",
+    "finance": "краткий анализ для сферы финансов"
+  },
+  "sphere_accents": {
+    "spirituality": "ключевой акцент для духовности",
+    "relationships": "ключевой акцент для отношений",
+    "health": "ключевой акцент для здоровья",
+    "finance": "ключевой акцент для финансов"
+  },
+  "main_focus_recommendation": "главная рекомендация по фокусу"
+}`;
+
+    const response = await fetch(`${AITUNNEL_BASE_URL}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${MCP_SMITHERY_API_KEY}`,
+        Authorization: `Bearer ${AITUNNEL_API_KEY}`,
       },
       body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "initialize",
-        params: {
-          protocolVersion: "2024-11-05",
-          capabilities: {},
-          clientInfo: { name: "balance-bot", version: "1.0.0" },
-        },
+        model: "gemini-2.5-flash",
+        temperature: 0.7,
+        max_tokens: 1500,
+        messages: [
+          { role: "system", content: "Ты опытный ведический астролог (джйотиш). Отвечай строго в формате JSON без лишнего текста." },
+          { role: "user", content: prompt },
+        ],
       }),
     });
 
-    const initText = await initResponse.text();
-    console.log("MCP init response status:", initResponse.status);
-    console.log("MCP init response:", initText.substring(0, 500));
-
-    if (!initResponse.ok) {
-      console.error("MCP init failed:", initResponse.status, initText);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("AITunnel astrology error:", response.status, errorText);
       return createFallbackJyotishSummary(birthData);
     }
 
-    // Extract session ID from response headers (Mcp-Session-Id)
-    const sessionId = initResponse.headers.get("mcp-session-id") || initResponse.headers.get("Mcp-Session-Id");
-    console.log("MCP session ID:", sessionId);
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || "";
+    console.log("AITunnel astrology raw response:", content.substring(0, 500));
 
-    // Step 2: Call the get_natal_chart tool
-    const toolArgs = {
-      birth_date: formattedDate,
-      birth_time: birthData.time,
-      birth_place: `${birthData.city}, ${birthData.country}`,
-      house_system: "placidus",
-    };
-    console.log("Calling get_natal_chart with args:", JSON.stringify(toolArgs));
-
-    const callHeaders: Record<string, string> = {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${MCP_SMITHERY_API_KEY}`,
-    };
-    if (sessionId) {
-      callHeaders["Mcp-Session-Id"] = sessionId;
-    }
-
-    const toolResponse = await fetch(mcpEndpoint, {
-      method: "POST",
-      headers: callHeaders,
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 2,
-        method: "tools/call",
-        params: {
-          name: "get_natal_chart",
-          arguments: toolArgs,
-        },
-      }),
-    });
-
-    const toolText = await toolResponse.text();
-    console.log("MCP tool response status:", toolResponse.status);
-    console.log("MCP tool response:", toolText.substring(0, 1000));
-
-    if (!toolResponse.ok) {
-      console.error("MCP tool call failed:", toolResponse.status, toolText);
-      return createFallbackJyotishSummary(birthData);
-    }
-
-    // Parse JSON-RPC result
-    let toolResult: unknown;
+    // Parse JSON from response, handling possible markdown code blocks or extra text
+    let parsed: Record<string, unknown>;
     try {
-      toolResult = JSON.parse(toolText);
+      parsed = JSON.parse(content);
     } catch {
-      // Could be multiple JSON-RPC responses (newline-delimited)
-      const lines = toolText.split('\n').filter(l => l.trim());
-      for (const line of lines) {
+      // Try to extract JSON from markdown code block or surrounding text
+      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || content.match(/(\{[\s\S]*\})/);
+      if (jsonMatch) {
         try {
-          const parsed = JSON.parse(line);
-          if (parsed.result) { toolResult = parsed; break; }
-        } catch { /* skip */ }
-      }
-    }
-
-    const rpcResult = toolResult as { result?: { content?: Array<{ type: string; text?: string }> }; error?: { message: string } };
-    
-    if (rpcResult?.error) {
-      console.error("MCP JSON-RPC error:", rpcResult.error);
-      return createFallbackJyotishSummary(birthData);
-    }
-
-    if (rpcResult?.result?.content) {
-      const contentArray = rpcResult.result.content;
-      let rawData: unknown = rpcResult.result.content;
-      
-      for (const item of contentArray) {
-        if (item.type === "text" && item.text) {
-          try {
-            rawData = JSON.parse(item.text);
-          } catch {
-            rawData = { text: item.text };
+          parsed = JSON.parse(jsonMatch[1].trim());
+        } catch {
+          console.error("Failed to parse extracted JSON, retrying...");
+          // Retry once
+          const retryResponse = await fetch(`${AITUNNEL_BASE_URL}/chat/completions`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${AITUNNEL_API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: "gemini-2.5-flash",
+              temperature: 0.3,
+              max_tokens: 1500,
+              messages: [
+                { role: "system", content: "Ответь ТОЛЬКО валидным JSON без markdown, без текста до или после." },
+                { role: "user", content: prompt },
+              ],
+            }),
+          });
+          if (retryResponse.ok) {
+            const retryData = await retryResponse.json();
+            const retryContent = retryData.choices?.[0]?.message?.content || "";
+            const retryJsonMatch = retryContent.match(/(\{[\s\S]*\})/);
+            parsed = JSON.parse(retryJsonMatch ? retryJsonMatch[1].trim() : retryContent);
+          } else {
+            await retryResponse.text();
+            return createFallbackJyotishSummary(birthData);
           }
-          break;
         }
+      } else {
+        console.error("No JSON found in AI response");
+        return createFallbackJyotishSummary(birthData);
       }
-
-      return {
-        raw_data: rawData,
-        summary: extractJyotishSummary(rawData),
-        calculated_at: new Date().toISOString(),
-      };
     }
 
-    console.warn("MCP result has no content, using fallback");
-    return createFallbackJyotishSummary(birthData);
+    console.log("Parsed astrology analysis successfully");
+
+    return {
+      available: true,
+      source: "aitunnel_gemini",
+      ascendant: parsed.ascendant,
+      moon_sign: parsed.moon_sign,
+      key_planetary_influences: parsed.key_planetary_influences,
+      sphere_analysis: parsed.sphere_analysis,
+      sphere_accents: parsed.sphere_accents || {},
+      main_focus_recommendation: parsed.main_focus_recommendation,
+      birth_data: {
+        date: birthData.date,
+        time: birthData.time,
+        place: `${birthData.city}, ${birthData.country}`,
+      },
+      calculated_at: new Date().toISOString(),
+    };
   } catch (error) {
-    console.error("Error calling Jyotish MCP via HTTP:", error);
+    console.error("Error generating astrology analysis:", error);
     return createFallbackJyotishSummary(birthData);
   }
 }
 
-// Extract summary from raw jyotish data
-function extractJyotishSummary(rawData: unknown): Record<string, unknown> {
-  // Parse the raw data and extract key insights
-  const summary: Record<string, unknown> = {
-    available: true,
-    source: "jyotish_mcp"
-  };
-  
-  if (typeof rawData === "object" && rawData !== null) {
-    const data = rawData as Record<string, unknown>;
-    
-    // Extract planets if available
-    if (data.planets) {
-      summary.planets = data.planets;
-    }
-    
-    // Extract houses if available
-    if (data.houses) {
-      summary.houses = data.houses;
-    }
-    
-    // Extract ascendant/lagna
-    if (data.ascendant || data.lagna) {
-      summary.ascendant = data.ascendant || data.lagna;
-    }
-    
-    // Extract moon sign
-    if (data.moon_sign || data.rashi) {
-      summary.moon_sign = data.moon_sign || data.rashi;
-    }
-    
-    // Extract nakshatra
-    if (data.nakshatra) {
-      summary.nakshatra = data.nakshatra;
-    }
-    
-    // Generate sphere accents based on planetary positions
-    summary.sphere_accents = generateSphereAccents(data);
-  }
-  
-  return summary;
-}
-
-// Generate accents for each sphere based on jyotish data
-function generateSphereAccents(data: Record<string, unknown>): Record<string, string> {
-  const accents: Record<string, string> = {};
-  
-  // Map planets/houses to spheres (simplified vedic astrology mapping)
-  // These are generic insights - the AI will use them to personalize advice
-  
-  if (data.sun || data.surya) {
-    accents.career = "Солнце влияет на реализацию и самовыражение";
-    accents.spirituality = "Солнце указывает на путь самопознания";
-  }
-  
-  if (data.moon || data.chandra) {
-    accents.relationships = "Луна определяет эмоциональную природу в отношениях";
-    accents.rest = "Луна влияет на внутреннее спокойствие и отдых";
-  }
-  
-  if (data.jupiter || data.guru) {
-    accents.finance = "Юпитер - показатель богатства и процветания";
-    accents.spirituality = "Юпитер указывает на духовный рост";
-  }
-  
-  if (data.venus || data.shukra) {
-    accents.relationships = "Венера управляет любовью и гармонией";
-    accents.environment = "Венера влияет на красоту и комфорт окружения";
-  }
-  
-  if (data.mars || data.mangal) {
-    accents.health = "Марс даёт энергию и жизненную силу";
-    accents.career = "Марс определяет целеустремлённость";
-  }
-  
-  if (data.saturn || data.shani) {
-    accents.career = "Сатурн учит терпению и упорству в работе";
-    accents.health = "Сатурн напоминает о дисциплине для здоровья";
-  }
-  
-  if (data.mercury || data.budh) {
-    accents.finance = "Меркурий влияет на деловую хватку";
-    accents.environment = "Меркурий связан с коммуникацией в окружении";
-  }
-  
-  return accents;
-}
+// extractJyotishSummary and generateSphereAccents removed — analysis is now fully generated by Gemini
 
 // Create fallback summary when MCP is unavailable
 function createFallbackJyotishSummary(birthData: { date: string; time: string; country: string; city: string }): Record<string, unknown> {
@@ -1429,20 +1317,20 @@ serve(async (req) => {
       const currentState = await getConversationState(supabaseAdmin, telegramId);
       let profile = await getUserProfile(supabaseAdmin, telegramId);
 
-      // Auto-trigger Jyotish MCP if mode=jyotish, birth data exists, but no summary yet
+      // Auto-trigger astrology analysis if mode=jyotish/astrology, birth data exists, but no summary yet
       const needsJyotish = profile && (profile.mode === "jyotish" || profile.mode === "astrology") && profile.birth_date && profile.birth_time && profile.birth_city && profile.birth_country && (!profile.jyotish_summary || (profile.jyotish_summary as Record<string, unknown>).available === false);
       if (needsJyotish) {
-        console.log("=== AUTO-TRIGGERING Jyotish MCP ===");
-        const jyotishResult = await callJyotishMCP({
+        console.log("=== AUTO-TRIGGERING Astrology via AITunnel ===");
+        const astrologyResult = await generateAstrologyAnalysis({
           date: profile.birth_date,
           time: profile.birth_time,
           country: profile.birth_country,
           city: profile.birth_city,
         });
-        if (jyotishResult) {
-          await updateProfileJyotishSummary(supabaseAdmin, telegramId, jyotishResult);
-          profile = await getUserProfile(supabaseAdmin, telegramId); // refresh
-          console.log("Jyotish summary saved successfully");
+        if (astrologyResult) {
+          await updateProfileJyotishSummary(supabaseAdmin, telegramId, astrologyResult);
+          profile = await getUserProfile(supabaseAdmin, telegramId);
+          console.log("Astrology analysis saved successfully");
         }
       }
 
@@ -1513,20 +1401,20 @@ serve(async (req) => {
         const currentState = await getConversationState(supabaseAdmin, telegramId);
         let profile = await getUserProfile(supabaseAdmin, telegramId);
 
-        // Auto-trigger Jyotish MCP if mode=jyotish, birth data exists, but no summary yet
+        // Auto-trigger astrology analysis if mode=jyotish/astrology, birth data exists, but no summary yet
         const needsJyotishVoice = profile && (profile.mode === "jyotish" || profile.mode === "astrology") && profile.birth_date && profile.birth_time && profile.birth_city && profile.birth_country && (!profile.jyotish_summary || (profile.jyotish_summary as Record<string, unknown>).available === false);
         if (needsJyotishVoice) {
-          console.log("=== AUTO-TRIGGERING Jyotish MCP (voice) ===");
-          const jyotishResult = await callJyotishMCP({
+          console.log("=== AUTO-TRIGGERING Astrology via AITunnel (voice) ===");
+          const astrologyResult = await generateAstrologyAnalysis({
             date: profile.birth_date,
             time: profile.birth_time,
             country: profile.birth_country,
             city: profile.birth_city,
           });
-          if (jyotishResult) {
-            await updateProfileJyotishSummary(supabaseAdmin, telegramId, jyotishResult);
+          if (astrologyResult) {
+            await updateProfileJyotishSummary(supabaseAdmin, telegramId, astrologyResult);
             profile = await getUserProfile(supabaseAdmin, telegramId);
-            console.log("Jyotish summary saved successfully (voice)");
+            console.log("Astrology analysis saved successfully (voice)");
           }
         }
 
