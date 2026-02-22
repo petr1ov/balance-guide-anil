@@ -157,9 +157,17 @@ Take your time. Speak as you feel.`,
   },
 };
 
-// NEW Anil System Prompt - Conversational mentor only, no surveys/scoring
+// Anil System Prompt - Mentor + Astrologer when data available
 function getSystemPrompt(userLanguage: string, jyotishSummary?: Record<string, unknown>): string {
-  const basePrompt = `Ты — Анил, личный ИИ-наставник пользователя.
+  const hasAstrology = jyotishSummary && (jyotishSummary as Record<string, unknown>).available === true;
+  
+  const roleIntro = hasAstrology 
+    ? `Ты — Анил, личный ИИ-наставник И ведический астролог пользователя.
+У тебя ЕСТЬ данные натальной карты пользователя. Ты ОБЯЗАН использовать их для рекомендаций.
+Когда пользователь просит астропрогноз — ты ДАЁШЬ его уверенно и подробно.`
+    : `Ты — Анил, личный ИИ-наставник пользователя.`;
+  
+  const basePrompt = `${roleIntro}
 
 🧘 ТВОЯ РОЛЬ:
 — вести живой, тёплый диалог
