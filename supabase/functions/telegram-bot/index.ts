@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Client } from "https://esm.sh/@modelcontextprotocol/sdk@1.12.1/client/index.js";
 import { StreamableHTTPClientTransport } from "https://esm.sh/@modelcontextprotocol/sdk@1.12.1/client/streamableHttp.js";
+import { SSEClientTransport } from "https://esm.sh/@modelcontextprotocol/sdk@1.12.1/client/sse.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -565,24 +566,11 @@ async function callJyotishMCP(birthData: {
     console.log("JYOTISH_MCP_URL:", JYOTISH_MCP_URL);
     console.log("JYOTISH_MCP_API_KEY:", JYOTISH_MCP_API_KEY ? "SET" : "NOT SET");
 
-    // Build MCP transport URL - append /mcp if not already present
-    const mcpBaseUrl = JYOTISH_MCP_URL.endsWith("/mcp") ? JYOTISH_MCP_URL : `${JYOTISH_MCP_URL}/mcp`;
-    
     // Create headers for auth
     const headers: Record<string, string> = {};
     if (JYOTISH_MCP_API_KEY) {
       headers["Authorization"] = `Bearer ${JYOTISH_MCP_API_KEY}`;
     }
-
-    // Create Streamable HTTP transport for Smithery MCP
-    const transport = new StreamableHTTPClientTransport(
-      new URL(mcpBaseUrl),
-      {
-        requestInit: {
-          headers,
-        },
-      }
-    );
 
     // Create MCP client
     const mcpClient = new Client(
@@ -590,9 +578,57 @@ async function callJyotishMCP(birthData: {
       { capabilities: {} }
     );
 
-    console.log("Connecting to MCP server...");
-    await mcpClient.connect(transport);
-    console.log("Connected to MCP server successfully");
+    // Try Streamable HTTP first, then fall back to SSE
+    let connected = false;
+    
+    // Attempt 1: Streamable HTTP at /mcp
+    try {
+      const mcpUrl = JYOTISH_MCP_URL.endsWith("/mcp") ? JYOTISH_MCP_URL : `${JYOTISH_MCP_URL}/mcp`;
+      console.log("Attempting Streamable HTTP connection to:", mcpUrl);
+      const transport = new StreamableHTTPClientTransport(
+        new URL(mcpUrl),
+        { requestInit: { headers } }
+      );
+      await mcpClient.connect(transport);
+      connected = true;
+      console.log("Connected via Streamable HTTP");
+    } catch (e) {
+      console.log("Streamable HTTP failed:", e.message);
+    }
+
+    // Attempt 2: SSE transport at /sse
+    if (!connected) {
+      try {
+        const sseUrl = JYOTISH_MCP_URL.endsWith("/sse") ? JYOTISH_MCP_URL : `${JYOTISH_MCP_URL}/sse`;
+        console.log("Attempting SSE connection to:", sseUrl);
+        const sseTransport = new SSEClientTransport(
+          new URL(sseUrl),
+          { requestInit: { headers } }
+        );
+        await mcpClient.connect(sseTransport);
+        connected = true;
+        console.log("Connected via SSE");
+      } catch (e2) {
+        console.log("SSE also failed:", e2.message);
+      }
+    }
+
+    // Attempt 3: Streamable HTTP at root URL
+    if (!connected) {
+      try {
+        console.log("Attempting Streamable HTTP at root:", JYOTISH_MCP_URL);
+        const transport3 = new StreamableHTTPClientTransport(
+          new URL(JYOTISH_MCP_URL),
+          { requestInit: { headers } }
+        );
+        await mcpClient.connect(transport3);
+        connected = true;
+        console.log("Connected via Streamable HTTP at root");
+      } catch (e3) {
+        console.error("All MCP connection attempts failed:", e3.message);
+        return createFallbackJyotishSummary(birthData);
+      }
+    }
 
     // Call the get_natal_chart tool
     const toolArgs = {
