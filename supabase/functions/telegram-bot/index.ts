@@ -1,8 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Client } from "https://esm.sh/@modelcontextprotocol/sdk@1.12.1/client/index.js";
-import { StreamableHTTPClientTransport } from "https://esm.sh/@modelcontextprotocol/sdk@1.12.1/client/streamableHttp.js";
-import { SSEClientTransport } from "https://esm.sh/@modelcontextprotocol/sdk@1.12.1/client/sse.js";
+import { createConnection } from "https://esm.sh/@smithery/api/mcp?target=deno";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,9 +15,10 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const AITUNNEL_API_KEY = Deno.env.get("AITUNNEL_API_KEY")!;
 const AITUNNEL_BASE_URL = Deno.env.get("AITUNNEL_BASE_URL") || "https://api.aitunnel.ru/v1";
 
-// Jyotish MCP API endpoint
-const JYOTISH_MCP_URL = Deno.env.get("JYOTISH_MCP_URL")!;
-const JYOTISH_MCP_API_KEY = Deno.env.get("JYOTISH_MCP_API_KEY") || "";
+// Smithery MCP connection
+const MCP_SMITHERY_PROFILE = Deno.env.get("MCP_SMITHERY_PROFILE") || "";
+const MCP_SMITHERY_API_KEY = Deno.env.get("MCP_SMITHERY_API_KEY") || "";
+const JYOTISH_MCP_URL = "https://astrology_mcp--latiftplgu.run.tools";
 
 // Mini App URL
 const MINI_APP_URL = "https://balance-guide-anil.lovable.app";
@@ -539,14 +539,14 @@ async function updateProfileJyotishSummary(supabase: any, telegramId: string, jy
     .eq("telegram_id", telegramId);
 }
 
-// Call Jyotish MCP via MCP protocol (Smithery transport)
+// Call Jyotish MCP via official Smithery createConnection
 async function callJyotishMCP(birthData: {
   date: string;
   time: string;
   country: string;
   city: string;
 }): Promise<Record<string, unknown> | null> {
-  console.log("Calling Jyotish MCP via SDK with birth data:", JSON.stringify(birthData));
+  console.log("Calling Jyotish MCP via Smithery SDK with birth data:", JSON.stringify(birthData));
   
   try {
     // Format date for API (convert DD.MM.YYYY to YYYY-MM-DD)
@@ -558,19 +558,23 @@ async function callJyotishMCP(birthData: {
       }
     }
 
-    if (!JYOTISH_MCP_URL) {
-      console.error("JYOTISH_MCP_URL is not configured!");
+    if (!MCP_SMITHERY_API_KEY) {
+      console.error("MCP_SMITHERY_API_KEY is not configured!");
       return createFallbackJyotishSummary(birthData);
     }
 
+    console.log("MCP_SMITHERY_PROFILE:", MCP_SMITHERY_PROFILE);
+    console.log("MCP_SMITHERY_API_KEY:", MCP_SMITHERY_API_KEY ? "SET" : "NOT SET");
     console.log("JYOTISH_MCP_URL:", JYOTISH_MCP_URL);
-    console.log("JYOTISH_MCP_API_KEY:", JYOTISH_MCP_API_KEY ? "SET" : "NOT SET");
 
-    // Create headers for auth
-    const headers: Record<string, string> = {};
-    if (JYOTISH_MCP_API_KEY) {
-      headers["Authorization"] = `Bearer ${JYOTISH_MCP_API_KEY}`;
-    }
+    // Create connection via Smithery official SDK
+    const { transport } = await createConnection({
+      mcpUrl: JYOTISH_MCP_URL,
+      profile: MCP_SMITHERY_PROFILE,
+      apiKey: MCP_SMITHERY_API_KEY,
+    });
+
+    console.log("Smithery transport created successfully");
 
     // Create MCP client
     const mcpClient = new Client(
@@ -578,57 +582,8 @@ async function callJyotishMCP(birthData: {
       { capabilities: {} }
     );
 
-    // Try Streamable HTTP first, then fall back to SSE
-    let connected = false;
-    
-    // Attempt 1: Streamable HTTP at /mcp
-    try {
-      const mcpUrl = JYOTISH_MCP_URL.endsWith("/mcp") ? JYOTISH_MCP_URL : `${JYOTISH_MCP_URL}/mcp`;
-      console.log("Attempting Streamable HTTP connection to:", mcpUrl);
-      const transport = new StreamableHTTPClientTransport(
-        new URL(mcpUrl),
-        { requestInit: { headers } }
-      );
-      await mcpClient.connect(transport);
-      connected = true;
-      console.log("Connected via Streamable HTTP");
-    } catch (e) {
-      console.log("Streamable HTTP failed:", e.message);
-    }
-
-    // Attempt 2: SSE transport at /sse
-    if (!connected) {
-      try {
-        const sseUrl = JYOTISH_MCP_URL.endsWith("/sse") ? JYOTISH_MCP_URL : `${JYOTISH_MCP_URL}/sse`;
-        console.log("Attempting SSE connection to:", sseUrl);
-        const sseTransport = new SSEClientTransport(
-          new URL(sseUrl),
-          { requestInit: { headers } }
-        );
-        await mcpClient.connect(sseTransport);
-        connected = true;
-        console.log("Connected via SSE");
-      } catch (e2) {
-        console.log("SSE also failed:", e2.message);
-      }
-    }
-
-    // Attempt 3: Streamable HTTP at root URL
-    if (!connected) {
-      try {
-        console.log("Attempting Streamable HTTP at root:", JYOTISH_MCP_URL);
-        const transport3 = new StreamableHTTPClientTransport(
-          new URL(JYOTISH_MCP_URL),
-          { requestInit: { headers } }
-        );
-        await mcpClient.connect(transport3);
-        connected = true;
-        console.log("Connected via Streamable HTTP at root");
-      } catch (e3) {
-        console.error("All MCP connection attempts failed:", e3.message);
-        return createFallbackJyotishSummary(birthData);
-      }
-    }
+    await mcpClient.connect(transport);
+    console.log("MCP client connected via Smithery");
 
     // Call the get_natal_chart tool
     const toolArgs = {
@@ -651,11 +606,9 @@ async function callJyotishMCP(birthData: {
 
     // Extract content from MCP result
     if (result && result.content) {
-      // MCP SDK returns content as array of { type, text } objects
       const contentArray = result.content as Array<{ type: string; text?: string }>;
       let rawData: unknown = result.content;
       
-      // Try to parse text content as JSON
       for (const item of contentArray) {
         if (item.type === "text" && item.text) {
           try {
@@ -677,7 +630,7 @@ async function callJyotishMCP(birthData: {
     console.warn("MCP result has no content, using fallback");
     return createFallbackJyotishSummary(birthData);
   } catch (error) {
-    console.error("Error calling Jyotish MCP via SDK:", error);
+    console.error("Error calling Jyotish MCP via Smithery:", error);
     return createFallbackJyotishSummary(birthData);
   }
 }
