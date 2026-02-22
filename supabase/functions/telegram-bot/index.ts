@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Client } from "https://esm.sh/@modelcontextprotocol/sdk@1.12.1/client/index.js";
-import { createConnection } from "https://esm.sh/@smithery/api/mcp?target=deno";
+// MCP SDK removed — using direct HTTP JSON-RPC calls for Deno compatibility
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -539,14 +538,14 @@ async function updateProfileJyotishSummary(supabase: any, telegramId: string, jy
     .eq("telegram_id", telegramId);
 }
 
-// Call Jyotish MCP via official Smithery createConnection
+// Call Jyotish MCP via direct HTTP JSON-RPC (Deno-compatible, no Node.js SDK)
 async function callJyotishMCP(birthData: {
   date: string;
   time: string;
   country: string;
   city: string;
 }): Promise<Record<string, unknown> | null> {
-  console.log("Calling Jyotish MCP via Smithery SDK with birth data:", JSON.stringify(birthData));
+  console.log("Calling Jyotish MCP via HTTP JSON-RPC with birth data:", JSON.stringify(birthData));
   
   try {
     // Format date for API (convert DD.MM.YYYY to YYYY-MM-DD)
@@ -564,50 +563,112 @@ async function callJyotishMCP(birthData: {
     }
 
     console.log("MCP_SMITHERY_PROFILE:", MCP_SMITHERY_PROFILE);
-    console.log("MCP_SMITHERY_API_KEY:", MCP_SMITHERY_API_KEY ? "SET" : "NOT SET");
+    console.log("MCP_SMITHERY_API_KEY:", MCP_SMITHERY_API_KEY ? "SET (length=" + MCP_SMITHERY_API_KEY.length + ")" : "NOT SET");
     console.log("JYOTISH_MCP_URL:", JYOTISH_MCP_URL);
 
-    // Create connection via Smithery official SDK
-    const { transport } = await createConnection({
-      mcpUrl: JYOTISH_MCP_URL,
-      profile: MCP_SMITHERY_PROFILE,
-      apiKey: MCP_SMITHERY_API_KEY,
+    // Build the Smithery MCP endpoint URL with profile
+    const mcpEndpoint = MCP_SMITHERY_PROFILE 
+      ? `${JYOTISH_MCP_URL}?profile=${encodeURIComponent(MCP_SMITHERY_PROFILE)}`
+      : JYOTISH_MCP_URL;
+
+    // Step 1: Initialize MCP session
+    console.log("Initializing MCP session at:", mcpEndpoint);
+    const initResponse = await fetch(mcpEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${MCP_SMITHERY_API_KEY}`,
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2024-11-05",
+          capabilities: {},
+          clientInfo: { name: "balance-bot", version: "1.0.0" },
+        },
+      }),
     });
 
-    console.log("Smithery transport created successfully");
+    const initText = await initResponse.text();
+    console.log("MCP init response status:", initResponse.status);
+    console.log("MCP init response:", initText.substring(0, 500));
 
-    // Create MCP client
-    const mcpClient = new Client(
-      { name: "balance-bot", version: "1.0.0" },
-      { capabilities: {} }
-    );
+    if (!initResponse.ok) {
+      console.error("MCP init failed:", initResponse.status, initText);
+      return createFallbackJyotishSummary(birthData);
+    }
 
-    await mcpClient.connect(transport);
-    console.log("MCP client connected via Smithery");
+    // Extract session ID from response headers (Mcp-Session-Id)
+    const sessionId = initResponse.headers.get("mcp-session-id") || initResponse.headers.get("Mcp-Session-Id");
+    console.log("MCP session ID:", sessionId);
 
-    // Call the get_natal_chart tool
+    // Step 2: Call the get_natal_chart tool
     const toolArgs = {
       birth_date: formattedDate,
       birth_time: birthData.time,
       birth_place: `${birthData.city}, ${birthData.country}`,
-      house_system: "placidus"
+      house_system: "placidus",
     };
     console.log("Calling get_natal_chart with args:", JSON.stringify(toolArgs));
 
-    const result = await mcpClient.callTool({
-      name: "get_natal_chart",
-      arguments: toolArgs,
+    const callHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${MCP_SMITHERY_API_KEY}`,
+    };
+    if (sessionId) {
+      callHeaders["Mcp-Session-Id"] = sessionId;
+    }
+
+    const toolResponse = await fetch(mcpEndpoint, {
+      method: "POST",
+      headers: callHeaders,
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/call",
+        params: {
+          name: "get_natal_chart",
+          arguments: toolArgs,
+        },
+      }),
     });
 
-    console.log("MCP callTool result:", JSON.stringify(result)?.substring(0, 1000));
+    const toolText = await toolResponse.text();
+    console.log("MCP tool response status:", toolResponse.status);
+    console.log("MCP tool response:", toolText.substring(0, 1000));
 
-    // Close connection
-    try { await mcpClient.close(); } catch { /* ignore close errors */ }
+    if (!toolResponse.ok) {
+      console.error("MCP tool call failed:", toolResponse.status, toolText);
+      return createFallbackJyotishSummary(birthData);
+    }
 
-    // Extract content from MCP result
-    if (result && result.content) {
-      const contentArray = result.content as Array<{ type: string; text?: string }>;
-      let rawData: unknown = result.content;
+    // Parse JSON-RPC result
+    let toolResult: unknown;
+    try {
+      toolResult = JSON.parse(toolText);
+    } catch {
+      // Could be multiple JSON-RPC responses (newline-delimited)
+      const lines = toolText.split('\n').filter(l => l.trim());
+      for (const line of lines) {
+        try {
+          const parsed = JSON.parse(line);
+          if (parsed.result) { toolResult = parsed; break; }
+        } catch { /* skip */ }
+      }
+    }
+
+    const rpcResult = toolResult as { result?: { content?: Array<{ type: string; text?: string }> }; error?: { message: string } };
+    
+    if (rpcResult?.error) {
+      console.error("MCP JSON-RPC error:", rpcResult.error);
+      return createFallbackJyotishSummary(birthData);
+    }
+
+    if (rpcResult?.result?.content) {
+      const contentArray = rpcResult.result.content;
+      let rawData: unknown = rpcResult.result.content;
       
       for (const item of contentArray) {
         if (item.type === "text" && item.text) {
@@ -623,14 +684,14 @@ async function callJyotishMCP(birthData: {
       return {
         raw_data: rawData,
         summary: extractJyotishSummary(rawData),
-        calculated_at: new Date().toISOString()
+        calculated_at: new Date().toISOString(),
       };
     }
 
     console.warn("MCP result has no content, using fallback");
     return createFallbackJyotishSummary(birthData);
   } catch (error) {
-    console.error("Error calling Jyotish MCP via Smithery:", error);
+    console.error("Error calling Jyotish MCP via HTTP:", error);
     return createFallbackJyotishSummary(birthData);
   }
 }
