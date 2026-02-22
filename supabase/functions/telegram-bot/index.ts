@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Client } from "https://esm.sh/@modelcontextprotocol/sdk@1.12.1/client/index.js";
+import { StreamableHTTPClientTransport } from "https://esm.sh/@modelcontextprotocol/sdk@1.12.1/client/streamableHttp.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -536,121 +538,110 @@ async function updateProfileJyotishSummary(supabase: any, telegramId: string, jy
     .eq("telegram_id", telegramId);
 }
 
-// Call Jyotish MCP API to get astrological analysis
+// Call Jyotish MCP via MCP protocol (Smithery transport)
 async function callJyotishMCP(birthData: {
   date: string;
   time: string;
   country: string;
   city: string;
 }): Promise<Record<string, unknown> | null> {
-  console.log("Calling Jyotish MCP API with birth data:", JSON.stringify(birthData));
+  console.log("Calling Jyotish MCP via SDK with birth data:", JSON.stringify(birthData));
   
   try {
     // Format date for API (convert DD.MM.YYYY to YYYY-MM-DD)
     const dateParts = birthData.date.split(/[.\-\/]/);
     let formattedDate = birthData.date;
     if (dateParts.length === 3) {
-      // Assume DD.MM.YYYY format
       if (dateParts[0].length <= 2) {
         formattedDate = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
       }
     }
-    
-    // MCP SSE request - the smithery MCP uses Server-Sent Events format
-    const requestBody = {
-      method: "tools/call",
-      params: {
-        name: "get_natal_chart",
-        arguments: {
-          birth_date: formattedDate,
-          birth_time: birthData.time,
-          birth_place: `${birthData.city}, ${birthData.country}`,
-          house_system: "placidus"
-        }
-      }
-    };
-    
-    console.log("MCP request body:", JSON.stringify(requestBody));
-    console.log("JYOTISH_MCP_URL:", JYOTISH_MCP_URL ? "SET" : "NOT SET");
-    console.log("JYOTISH_MCP_API_KEY:", JYOTISH_MCP_API_KEY ? "SET" : "NOT SET");
 
     if (!JYOTISH_MCP_URL) {
       console.error("JYOTISH_MCP_URL is not configured!");
       return createFallbackJyotishSummary(birthData);
     }
 
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      "Accept": "application/json, text/event-stream",
-    };
+    console.log("JYOTISH_MCP_URL:", JYOTISH_MCP_URL);
+    console.log("JYOTISH_MCP_API_KEY:", JYOTISH_MCP_API_KEY ? "SET" : "NOT SET");
+
+    // Build MCP transport URL - append /mcp if not already present
+    const mcpBaseUrl = JYOTISH_MCP_URL.endsWith("/mcp") ? JYOTISH_MCP_URL : `${JYOTISH_MCP_URL}/mcp`;
+    
+    // Create headers for auth
+    const headers: Record<string, string> = {};
     if (JYOTISH_MCP_API_KEY) {
       headers["Authorization"] = `Bearer ${JYOTISH_MCP_API_KEY}`;
     }
-    
-    const response = await fetch(JYOTISH_MCP_URL, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(requestBody),
+
+    // Create Streamable HTTP transport for Smithery MCP
+    const transport = new StreamableHTTPClientTransport(
+      new URL(mcpBaseUrl),
+      {
+        requestInit: {
+          headers,
+        },
+      }
+    );
+
+    // Create MCP client
+    const mcpClient = new Client(
+      { name: "balance-bot", version: "1.0.0" },
+      { capabilities: {} }
+    );
+
+    console.log("Connecting to MCP server...");
+    await mcpClient.connect(transport);
+    console.log("Connected to MCP server successfully");
+
+    // Call the get_natal_chart tool
+    const toolArgs = {
+      birth_date: formattedDate,
+      birth_time: birthData.time,
+      birth_place: `${birthData.city}, ${birthData.country}`,
+      house_system: "placidus"
+    };
+    console.log("Calling get_natal_chart with args:", JSON.stringify(toolArgs));
+
+    const result = await mcpClient.callTool({
+      name: "get_natal_chart",
+      arguments: toolArgs,
     });
-    
-    console.log("MCP response status:", response.status);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("MCP error body:", errorText);
-      return createFallbackJyotishSummary(birthData);
-    }
-    
-    const contentType = response.headers.get("content-type") || "";
-    let result;
-    
-    if (contentType.includes("text/event-stream")) {
-      // Handle SSE response
-      const text = await response.text();
-      console.log("MCP SSE response:", text.substring(0, 500));
-      // Parse SSE data
-      const lines = text.split("\n");
-      for (const line of lines) {
-        if (line.startsWith("data: ")) {
+
+    console.log("MCP callTool result:", JSON.stringify(result)?.substring(0, 1000));
+
+    // Close connection
+    try { await mcpClient.close(); } catch { /* ignore close errors */ }
+
+    // Extract content from MCP result
+    if (result && result.content) {
+      // MCP SDK returns content as array of { type, text } objects
+      const contentArray = result.content as Array<{ type: string; text?: string }>;
+      let rawData: unknown = result.content;
+      
+      // Try to parse text content as JSON
+      for (const item of contentArray) {
+        if (item.type === "text" && item.text) {
           try {
-            result = JSON.parse(line.substring(6));
-            break;
+            rawData = JSON.parse(item.text);
           } catch {
-            // Continue to next line
+            rawData = { text: item.text };
           }
+          break;
         }
       }
-    } else {
-      result = await response.json();
-    }
-    
-    console.log("Jyotish MCP raw response:", JSON.stringify(result)?.substring(0, 1000));
-    
-    if (result && result.result) {
-      console.log("MCP result.result found, extracting summary");
+
       return {
-        raw_data: result.result,
-        summary: extractJyotishSummary(result.result),
+        raw_data: rawData,
+        summary: extractJyotishSummary(rawData),
         calculated_at: new Date().toISOString()
       };
     }
-    
-    // Check alternative response formats
-    if (result && result.content) {
-      console.log("MCP result.content found (alternative format)");
-      return {
-        raw_data: result.content,
-        summary: extractJyotishSummary(result.content),
-        calculated_at: new Date().toISOString()
-      };
-    }
-    
-    console.warn("MCP response has no result or content field, using fallback. Keys:", result ? Object.keys(result) : "null");
-    // Return parsed result or fallback
-    return result || createFallbackJyotishSummary(birthData);
+
+    console.warn("MCP result has no content, using fallback");
+    return createFallbackJyotishSummary(birthData);
   } catch (error) {
-    console.error("Error calling Jyotish MCP:", error);
-    // Return fallback summary so coaching can continue
+    console.error("Error calling Jyotish MCP via SDK:", error);
     return createFallbackJyotishSummary(birthData);
   }
 }
