@@ -989,13 +989,21 @@ async function askAnil(
   telegramId: string,
   messages: { role: string; content: string }[], 
   userLanguage: string, 
-  jyotishSummary?: Record<string, unknown>
+  options?: {
+    jyotishSummary?: Record<string, unknown>;
+    userName?: string | null;
+    userGender?: string | null;
+    currentSphere?: string;
+  }
 ): Promise<string> {
   console.log("=== ASKING ANIL via AITunnel ===");
   console.log("Messages count:", messages.length);
   console.log("Language:", userLanguage);
+  console.log("USER:", options?.userName, options?.userGender);
+  console.log("ASTRO:", options?.jyotishSummary ? "available" : "none");
+  console.log("BOOKS sphere:", options?.currentSphere || "general");
   
-  const systemPrompt = getSystemPrompt(userLanguage, jyotishSummary);
+  const systemPrompt = getSystemPrompt(userLanguage, options);
   const model = "gemini-2.5-flash";
   
   const response = await fetch(`${AITUNNEL_BASE_URL}/chat/completions`, {
