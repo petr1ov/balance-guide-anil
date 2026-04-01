@@ -194,7 +194,16 @@ Take your time. Speak as you feel.`,
 };
 
 // Anil System Prompt - Mentor + Astrologer when data available
-function getSystemPrompt(userLanguage: string, jyotishSummary?: Record<string, unknown>): string {
+function getSystemPrompt(
+  userLanguage: string, 
+  options?: { 
+    jyotishSummary?: Record<string, unknown>;
+    userName?: string | null;
+    userGender?: string | null;
+    currentSphere?: string;
+  }
+): string {
+  const { jyotishSummary, userName, userGender, currentSphere } = options || {};
   const hasAstrology = jyotishSummary && (jyotishSummary as Record<string, unknown>).available === true;
   
   const roleIntro = hasAstrology 
@@ -202,9 +211,40 @@ function getSystemPrompt(userLanguage: string, jyotishSummary?: Record<string, u
 У тебя ЕСТЬ данные натальной карты пользователя. Ты ОБЯЗАН использовать их для рекомендаций.
 Когда пользователь просит астропрогноз — ты ДАЁШЬ его уверенно и подробно.`
     : `Ты — Анил, личный ИИ-наставник пользователя.`;
+
+  // Personalization block
+  let personalizationBlock = "";
+  if (userName) {
+    personalizationBlock += `\n👤 ПЕРСОНАЛИЗАЦИЯ:\nИмя пользователя: ${userName}\n`;
+    if (userGender === "male" || userGender === "м") {
+      personalizationBlock += `Пол: мужской — используй мужской род (ты сделал, ты готов, ты справился)\n`;
+    } else if (userGender === "female" || userGender === "ж") {
+      personalizationBlock += `Пол: женский — используй женский род (ты сделала, ты готова, ты справилась)\n`;
+    } else {
+      personalizationBlock += `Пол: неизвестен — пиши нейтрально\n`;
+    }
+    personalizationBlock += `ОБЯЗАТЕЛЬНО обращайся к пользователю по имени. Например: «${userName}, давай посмотрим...»\n`;
+  }
+
+  // Knowledge base block
+  let knowledgeBlock = "";
+  if (currentSphere) {
+    const books = getRelevantBooks(currentSphere);
+    if (books) {
+      knowledgeBlock = `\n📚 БАЗА ЗНАНИЙ (используй идеи из этих книг для обогащения рекомендаций):\nСфера: ${currentSphere}\n${books}\n\nНе цитируй книги дословно, но вплетай их идеи в свои рекомендации естественно.\n`;
+    }
+  } else {
+    // Provide all spheres briefly
+    const allSpheres = ["spirituality", "relationships", "health", "finance"];
+    const allBooks = allSpheres.map(s => {
+      const b = KNOWLEDGE_BASE[s];
+      return b ? `${s}: ${b.slice(0, 2).map(x => `«${x.title}»`).join(", ")}` : "";
+    }).filter(Boolean).join("\n");
+    knowledgeBlock = `\n📚 БАЗА ЗНАНИЙ (используй идеи из книг для обогащения рекомендаций):\n${allBooks}\n`;
+  }
   
   const basePrompt = `${roleIntro}
-
+${personalizationBlock}
 🧘 ТВОЯ РОЛЬ:
 — вести живой, тёплый диалог
 — помогать человеку осмыслить свою жизнь
@@ -264,7 +304,7 @@ function getSystemPrompt(userLanguage: string, jyotishSummary?: Record<string, u
 3. ..."
 
 ❗ Лучше маленький шаг, чем идеальный план
-
+${knowledgeBlock}
 🧘 СТИЛЬ ОБЩЕНИЯ:
 — спокойно
 — без давления
@@ -294,10 +334,6 @@ function getSystemPrompt(userLanguage: string, jyotishSummary?: Record<string, u
 — скажи: "Время ты выбираешь сам в настройках мини-приложения. Там удобно всё настроить."
 — не настаивай, не дави и не повторяйся
 
-Пример фразы:
-"Кстати, чтобы я мог поддерживать тебя регулярно, очень советую включить уведомления 🌿
-Это можно сделать в мини-приложении — там удобно выбрать время."
-
 Ты — не гуру. Ты — проводник.
 Ты слушаешь. Ты поддерживаешь. Ты помогаешь увидеть путь.`;
 
@@ -310,7 +346,7 @@ ${JSON.stringify(jyotishSummary, null, 2)}
 
 КАК ИСПОЛЬЗОВАТЬ:
 — АКТИВНО используй эти данные для персонализированных рекомендаций
-— Когда пользователь просит астропрогноз — ДАЙАЙ его, используя данные натальной карты
+— Когда пользователь просит астропрогноз — ДАВАЙ его, используя данные натальной карты
 — ГОВОРИ: «по твоей карте видно…», «у тебя сильная энергия в…», «сейчас важно обратить внимание на…»
 — Давай конкретные рекомендации по сферам жизни на основе планетарных влияний
 — Связывай астрологические акценты с текущей датой и сезоном
