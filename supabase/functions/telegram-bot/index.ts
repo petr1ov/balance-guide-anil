@@ -547,10 +547,10 @@ async function updateConversationState(supabase: any, telegramId: string, state:
 }
 
 // deno-lint-ignore no-explicit-any
-async function getUserProfile(supabase: any, telegramId: string): Promise<{ id: string; language: string; mode: string; birth_date: string | null; birth_time: string | null; birth_country: string | null; birth_city: string | null; jyotish_summary: Record<string, unknown> | null } | null> {
+async function getUserProfile(supabase: any, telegramId: string): Promise<{ id: string; name: string | null; gender: string | null; language: string; mode: string; birth_date: string | null; birth_time: string | null; birth_country: string | null; birth_city: string | null; jyotish_summary: Record<string, unknown> | null } | null> {
   const { data } = await supabase
     .from("profiles")
-    .select("id, language, mode, birth_date, birth_time, birth_country, birth_city, jyotish_summary")
+    .select("id, name, gender, language, mode, birth_date, birth_time, birth_country, birth_city, jyotish_summary")
     .eq("telegram_id", telegramId)
     .maybeSingle();
   
