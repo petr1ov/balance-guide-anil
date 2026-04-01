@@ -26,6 +26,42 @@ const SPHERES = [
   { key: "finance", ru: "Финансы", en: "Finance", hi: "वित्त" },
 ];
 
+// Knowledge base: books by sphere (3-5 per sphere)
+const KNOWLEDGE_BASE: Record<string, { title: string; author: string; insight: string }[]> = {
+  spirituality: [
+    { title: "Бхагавад-гита как она есть", author: "Прабхупада", insight: "дхарма, карма, долг, служение" },
+    { title: "Автобиография йога", author: "Парамаханса Йогананда", insight: "медитация, самопознание, духовный путь" },
+    { title: "Сила момента сейчас", author: "Экхарт Толле", insight: "присутствие, осознанность, внутренний покой" },
+    { title: "Семь духовных законов успеха", author: "Дипак Чопра", insight: "намерение, непривязанность, дхарма" },
+  ],
+  relationships: [
+    { title: "5 языков любви", author: "Гэри Чепмен", insight: "понимание языка любви партнёра" },
+    { title: "Мужчины с Марса, женщины с Венеры", author: "Джон Грэй", insight: "различия в коммуникации полов" },
+    { title: "Ненасильственное общение", author: "Маршалл Розенберг", insight: "эмпатия, выражение потребностей без агрессии" },
+    { title: "Привязанность", author: "Амир Левин", insight: "типы привязанности и их влияние на отношения" },
+  ],
+  health: [
+    { title: "Аюрведа. Наука самоисцеления", author: "Васант Лад", insight: "доши, питание, образ жизни по аюрведе" },
+    { title: "Атомные привычки", author: "Джеймс Клир", insight: "маленькие привычки, системный подход к здоровью" },
+    { title: "Почему мы спим", author: "Мэттью Уолкер", insight: "важность сна для здоровья и энергии" },
+    { title: "Тело ведёт счёт", author: "Бессел ван дер Колк", insight: "связь тела и психики, травмы" },
+  ],
+  finance: [
+    { title: "Богатый папа, бедный папа", author: "Роберт Кийосаки", insight: "финансовое мышление, активы vs пассивы" },
+    { title: "Психология денег", author: "Морган Хаузел", insight: "поведенческие аспекты финансов" },
+    { title: "Самый богатый человек в Вавилоне", author: "Джордж Клейсон", insight: "базовые принципы накопления и инвестирования" },
+    { title: "Думай и богатей", author: "Наполеон Хилл", insight: "сила намерения и визуализации в финансах" },
+  ],
+};
+
+// Get relevant books for a sphere (max 3-5)
+function getRelevantBooks(sphere?: string): string {
+  if (!sphere) return "";
+  const books = KNOWLEDGE_BASE[sphere];
+  if (!books || books.length === 0) return "";
+  return books.map(b => `- «${b.title}» (${b.author}) — ${b.insight}`).join("\n");
+}
+
 // Conversation stages (FSM)
 const STAGES = {
   IDLE: "idle",
@@ -158,7 +194,16 @@ Take your time. Speak as you feel.`,
 };
 
 // Anil System Prompt - Mentor + Astrologer when data available
-function getSystemPrompt(userLanguage: string, jyotishSummary?: Record<string, unknown>): string {
+function getSystemPrompt(
+  userLanguage: string, 
+  options?: { 
+    jyotishSummary?: Record<string, unknown>;
+    userName?: string | null;
+    userGender?: string | null;
+    currentSphere?: string;
+  }
+): string {
+  const { jyotishSummary, userName, userGender, currentSphere } = options || {};
   const hasAstrology = jyotishSummary && (jyotishSummary as Record<string, unknown>).available === true;
   
   const roleIntro = hasAstrology 
@@ -166,9 +211,40 @@ function getSystemPrompt(userLanguage: string, jyotishSummary?: Record<string, u
 У тебя ЕСТЬ данные натальной карты пользователя. Ты ОБЯЗАН использовать их для рекомендаций.
 Когда пользователь просит астропрогноз — ты ДАЁШЬ его уверенно и подробно.`
     : `Ты — Анил, личный ИИ-наставник пользователя.`;
+
+  // Personalization block
+  let personalizationBlock = "";
+  if (userName) {
+    personalizationBlock += `\n👤 ПЕРСОНАЛИЗАЦИЯ:\nИмя пользователя: ${userName}\n`;
+    if (userGender === "male" || userGender === "м") {
+      personalizationBlock += `Пол: мужской — используй мужской род (ты сделал, ты готов, ты справился)\n`;
+    } else if (userGender === "female" || userGender === "ж") {
+      personalizationBlock += `Пол: женский — используй женский род (ты сделала, ты готова, ты справилась)\n`;
+    } else {
+      personalizationBlock += `Пол: неизвестен — пиши нейтрально\n`;
+    }
+    personalizationBlock += `ОБЯЗАТЕЛЬНО обращайся к пользователю по имени. Например: «${userName}, давай посмотрим...»\n`;
+  }
+
+  // Knowledge base block
+  let knowledgeBlock = "";
+  if (currentSphere) {
+    const books = getRelevantBooks(currentSphere);
+    if (books) {
+      knowledgeBlock = `\n📚 БАЗА ЗНАНИЙ (используй идеи из этих книг для обогащения рекомендаций):\nСфера: ${currentSphere}\n${books}\n\nНе цитируй книги дословно, но вплетай их идеи в свои рекомендации естественно.\n`;
+    }
+  } else {
+    // Provide all spheres briefly
+    const allSpheres = ["spirituality", "relationships", "health", "finance"];
+    const allBooks = allSpheres.map(s => {
+      const b = KNOWLEDGE_BASE[s];
+      return b ? `${s}: ${b.slice(0, 2).map(x => `«${x.title}»`).join(", ")}` : "";
+    }).filter(Boolean).join("\n");
+    knowledgeBlock = `\n📚 БАЗА ЗНАНИЙ (используй идеи из книг для обогащения рекомендаций):\n${allBooks}\n`;
+  }
   
   const basePrompt = `${roleIntro}
-
+${personalizationBlock}
 🧘 ТВОЯ РОЛЬ:
 — вести живой, тёплый диалог
 — помогать человеку осмыслить свою жизнь
@@ -228,7 +304,7 @@ function getSystemPrompt(userLanguage: string, jyotishSummary?: Record<string, u
 3. ..."
 
 ❗ Лучше маленький шаг, чем идеальный план
-
+${knowledgeBlock}
 🧘 СТИЛЬ ОБЩЕНИЯ:
 — спокойно
 — без давления
@@ -258,10 +334,6 @@ function getSystemPrompt(userLanguage: string, jyotishSummary?: Record<string, u
 — скажи: "Время ты выбираешь сам в настройках мини-приложения. Там удобно всё настроить."
 — не настаивай, не дави и не повторяйся
 
-Пример фразы:
-"Кстати, чтобы я мог поддерживать тебя регулярно, очень советую включить уведомления 🌿
-Это можно сделать в мини-приложении — там удобно выбрать время."
-
 Ты — не гуру. Ты — проводник.
 Ты слушаешь. Ты поддерживаешь. Ты помогаешь увидеть путь.`;
 
@@ -274,7 +346,7 @@ ${JSON.stringify(jyotishSummary, null, 2)}
 
 КАК ИСПОЛЬЗОВАТЬ:
 — АКТИВНО используй эти данные для персонализированных рекомендаций
-— Когда пользователь просит астропрогноз — ДАЙАЙ его, используя данные натальной карты
+— Когда пользователь просит астропрогноз — ДАВАЙ его, используя данные натальной карты
 — ГОВОРИ: «по твоей карте видно…», «у тебя сильная энергия в…», «сейчас важно обратить внимание на…»
 — Давай конкретные рекомендации по сферам жизни на основе планетарных влияний
 — Связывай астрологические акценты с текущей датой и сезоном
@@ -511,10 +583,10 @@ async function updateConversationState(supabase: any, telegramId: string, state:
 }
 
 // deno-lint-ignore no-explicit-any
-async function getUserProfile(supabase: any, telegramId: string): Promise<{ id: string; language: string; mode: string; birth_date: string | null; birth_time: string | null; birth_country: string | null; birth_city: string | null; jyotish_summary: Record<string, unknown> | null } | null> {
+async function getUserProfile(supabase: any, telegramId: string): Promise<{ id: string; name: string | null; gender: string | null; language: string; mode: string; birth_date: string | null; birth_time: string | null; birth_country: string | null; birth_city: string | null; jyotish_summary: Record<string, unknown> | null } | null> {
   const { data } = await supabase
     .from("profiles")
-    .select("id, language, mode, birth_date, birth_time, birth_country, birth_city, jyotish_summary")
+    .select("id, name, gender, language, mode, birth_date, birth_time, birth_country, birth_city, jyotish_summary")
     .eq("telegram_id", telegramId)
     .maybeSingle();
   
@@ -917,13 +989,21 @@ async function askAnil(
   telegramId: string,
   messages: { role: string; content: string }[], 
   userLanguage: string, 
-  jyotishSummary?: Record<string, unknown>
+  options?: {
+    jyotishSummary?: Record<string, unknown>;
+    userName?: string | null;
+    userGender?: string | null;
+    currentSphere?: string;
+  }
 ): Promise<string> {
   console.log("=== ASKING ANIL via AITunnel ===");
   console.log("Messages count:", messages.length);
   console.log("Language:", userLanguage);
+  console.log("USER:", options?.userName, options?.userGender);
+  console.log("ASTRO:", options?.jyotishSummary ? "available" : "none");
+  console.log("BOOKS sphere:", options?.currentSphere || "general");
   
-  const systemPrompt = getSystemPrompt(userLanguage, jyotishSummary);
+  const systemPrompt = getSystemPrompt(userLanguage, options);
   const model = "gemini-2.5-flash";
   
   const response = await fetch(`${AITUNNEL_BASE_URL}/chat/completions`, {
@@ -1361,15 +1441,22 @@ serve(async (req) => {
       // Save user message
       await saveChatMessage(supabaseAdmin, telegramId, "user", userText);
 
-      // Get the updated state after processing the message
+      // Detect current sphere from conversation state for knowledge base
       const stateForAI = await getConversationState(supabaseAdmin, telegramId);
+      const currentSphereIndex = stateForAI.point_a_index || stateForAI.point_b_index || stateForAI.current_sphere_index || 0;
+      const currentSphere = currentSphereIndex < SPHERES.length ? SPHERES[currentSphereIndex].key : undefined;
       
       const aiResponse = await askAnil(
         supabaseAdmin,
         telegramId,
         messagesForAI, 
         userLanguage, 
-        profile?.jyotish_summary || undefined
+        {
+          jyotishSummary: profile?.jyotish_summary || undefined,
+          userName: profile?.name,
+          userGender: profile?.gender,
+          currentSphere,
+        }
       );
 
       // IMPORTANT: Do NOT infer/override stage from AI text.
@@ -1445,12 +1532,22 @@ serve(async (req) => {
         // Save user message (with voice indicator)
         await saveChatMessage(supabaseAdmin, telegramId, "user", `🎙 ${transcribedText}`);
 
+        // Detect current sphere for knowledge base
+        const voiceState = await getConversationState(supabaseAdmin, telegramId);
+        const voiceSphereIndex = voiceState.point_a_index || voiceState.point_b_index || voiceState.current_sphere_index || 0;
+        const voiceCurrentSphere = voiceSphereIndex < SPHERES.length ? SPHERES[voiceSphereIndex].key : undefined;
+
         const aiResponse = await askAnil(
           supabaseAdmin,
           telegramId,
           messagesForAI, 
           userLanguage, 
-          profile?.jyotish_summary || undefined
+          {
+            jyotishSummary: profile?.jyotish_summary || undefined,
+            userName: profile?.name,
+            userGender: profile?.gender,
+            currentSphere: voiceCurrentSphere,
+          }
         );
 
         // IMPORTANT: Do NOT infer/override stage from AI text.

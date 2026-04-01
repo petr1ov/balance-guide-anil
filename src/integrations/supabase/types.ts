@@ -240,6 +240,7 @@ export type Database = {
           consent_version: string | null
           conversation_state: Json | null
           created_at: string
+          gender: string | null
           id: string
           jyotish_summary: Json | null
           language: string | null
@@ -260,6 +261,7 @@ export type Database = {
           consent_version?: string | null
           conversation_state?: Json | null
           created_at?: string
+          gender?: string | null
           id?: string
           jyotish_summary?: Json | null
           language?: string | null
@@ -280,6 +282,7 @@ export type Database = {
           consent_version?: string | null
           conversation_state?: Json | null
           created_at?: string
+          gender?: string | null
           id?: string
           jyotish_summary?: Json | null
           language?: string | null
