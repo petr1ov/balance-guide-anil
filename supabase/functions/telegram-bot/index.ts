@@ -26,40 +26,104 @@ const SPHERES = [
   { key: "finance", ru: "Финансы", en: "Finance", hi: "वित्त" },
 ];
 
-// Knowledge base: books by sphere (3-5 per sphere)
+// Knowledge base: books by sphere
 const KNOWLEDGE_BASE: Record<string, { title: string; author: string; insight: string }[]> = {
   spirituality: [
-    { title: "Бхагавад-гита как она есть", author: "Прабхупада", insight: "дхарма, карма, долг, служение" },
-    { title: "Автобиография йога", author: "Парамаханса Йогананда", insight: "медитация, самопознание, духовный путь" },
-    { title: "Сила момента сейчас", author: "Экхарт Толле", insight: "присутствие, осознанность, внутренний покой" },
-    { title: "Семь духовных законов успеха", author: "Дипак Чопра", insight: "намерение, непривязанность, дхарма" },
+    { title: "Бхагавад-гита", author: "Прабхупада", insight: "философия жизни, дхарма, карма, долг, освобождение" },
+    { title: "Чанакья Нити", author: "Чанакья", insight: "практическая мудрость, политика, стратегия, этика" },
+    { title: "Будда и его учение", author: "Нарада Тхера", insight: "основы буддизма, Восьмеричный путь, нирвана" },
+    { title: "The Untethered Soul", author: "Michael Singer", insight: "внутреннее освобождение, работа с умом, принятие" },
+    { title: "Любовь Кармы", author: "Рами Блект", insight: "кармические законы, отношения, причинно-следственные связи" },
+    { title: "Дао дэ цзин", author: "Лао-цзы", insight: "даосская философия, путь природы, недеяние" },
+    { title: "Искусство войны", author: "Сунь-Цзы", insight: "стратегия, тактика, победа без боя, управление" },
+    { title: "Упанишады", author: "адаптированные переводы", insight: "философские основы индуизма, природа реальности, Брахман" },
+    { title: "Дхаммапада", author: "Будда", insight: "изречения Будды, нравственность, мудрость" },
+    { title: "Meditations", author: "Marcus Aurelius", insight: "стоицизм, долг, самодисциплина, принятие" },
+    { title: "The Book of Joy", author: "Dalai Lama & Desmond Tutu", insight: "радость, сострадание, resilience, преодоление трудностей" },
+    { title: "Anam Cara", author: "John O'Donohue", insight: "кельтская мудрость, дружба, духовность, природа души" },
+    { title: "Tao of Pooh", author: "Benjamin Hoff", insight: "даосизм через призму сказок, простота, естественность" },
+    { title: "Autobiography of a Yogi", author: "Paramahansa Yogananda", insight: "путь йога, духовные чудеса, самореализация" },
+    { title: "The Seven Spiritual Laws of Success", author: "Deepak Chopra", insight: "духовные принципы процветания, карма, дхарма" },
+    { title: "The Journey Home", author: "Radhanath Swami", insight: "духовные искания, путь в Индию, преданность" },
+    { title: "Imitation of Christ", author: "Thomas à Kempis", insight: "христианское devotion, смирение, внутренняя жизнь" },
+    { title: "Peace Is Every Step", author: "Thich Nhat Hanh", insight: "осознанность, мир в повседневной жизни" },
+    { title: "The Prophet", author: "Kahlil Gibran", insight: "поэтическая философия о любви, детях, работе, жизни" },
+    { title: "The Four Agreements", author: "Don Miguel Ruiz", insight: "личная свобода, toltec wisdom, ограничивающие убеждения" },
+    { title: "Беседы с Богом", author: "Нил Доналд Уолш", insight: "диалог с Богом, новые духовные парадигмы" },
+    { title: "Путешествие к себе", author: "Олег Гадецкий", insight: "самопознание, предназначение, жизненный путь" },
   ],
   relationships: [
-    { title: "5 языков любви", author: "Гэри Чепмен", insight: "понимание языка любви партнёра" },
-    { title: "Мужчины с Марса, женщины с Венеры", author: "Джон Грэй", insight: "различия в коммуникации полов" },
-    { title: "Ненасильственное общение", author: "Маршалл Розенберг", insight: "эмпатия, выражение потребностей без агрессии" },
-    { title: "Привязанность", author: "Амир Левин", insight: "типы привязанности и их влияние на отношения" },
+    { title: "Мужчины с Марса, женщины с Венеры", author: "Джон Грэй", insight: "гендерные различия в психологии и коммуникации" },
+    { title: "Пять языков любви", author: "Гэри Чепмен", insight: "как выражать и воспринимать любовь" },
+    { title: "Карма любви", author: "Рами Блект", insight: "кармические причины проблем в отношениях" },
+    { title: "Семь принципов счастливого брака", author: "Джон Готтман", insight: "научный подход к гармоничным отношениям" },
+    { title: "Искусство любви", author: "Эрих Фромм", insight: "философия любви как искусство и деятельность" },
+    { title: "Hold Me Tight", author: "Сью Джонсон", insight: "Emotionally Focused Therapy (EFT) для пар" },
+    { title: "Nonviolent Communication", author: "Маршалл Розенберг", insight: "эмпатическое общение, ненасильственная коммуникация" },
+    { title: "Как завоёвывать друзей и оказывать влияние на людей", author: "Дейл Карнеги", insight: "социальные навыки, влияние, коммуникация" },
+    { title: "Никогда не ешьте в одиночку", author: "Кит Ферацци", insight: "нетворкинг, построение социальных связей" },
+    { title: "Радикальная честность", author: "Брэд Блантон", insight: "искренность в общении, выход из социальных игр" },
+    { title: "Влияние. Психология убеждения", author: "Роберт Чалдини", insight: "психологические принципы влияния и убеждения" },
+    { title: "Лжи на кушетке", author: "Ирвин Ялом", insight: "психотерапия, отношения терапевта и клиента" },
+    { title: "Detecting Lies and Deceit", author: "Aldert Vrij", insight: "психология и признаки обмана" },
+    { title: "Fireproof: The Love Dare", author: "Стивен и Алекс Кендрик", insight: "практические шаги для укрепления брака" },
+    { title: "Любовь и уважение", author: "Эмерсон Эггерихс", insight: "христианский подход к браку, потребности мужчины и женщины" },
   ],
   health: [
-    { title: "Аюрведа. Наука самоисцеления", author: "Васант Лад", insight: "доши, питание, образ жизни по аюрведе" },
-    { title: "Атомные привычки", author: "Джеймс Клир", insight: "маленькие привычки, системный подход к здоровью" },
-    { title: "Почему мы спим", author: "Мэттью Уолкер", insight: "важность сна для здоровья и энергии" },
-    { title: "Тело ведёт счёт", author: "Бессел ван дер Колк", insight: "связь тела и психики, травмы" },
+    { title: "Light on Yoga", author: "B.K.S. Айенгар", insight: "подробное руководство по асанам и философии йоги" },
+    { title: "Йога-сутры Патанджали", author: "Патанджали", insight: "философские основы и практика классической йоги" },
+    { title: "Science of Yoga", author: "William J. Broad", insight: "научные исследования benefits и рисков йоги" },
+    { title: "Breath", author: "James Nestor", insight: "наука и практика дыхания, impact на здоровье" },
+    { title: "The Miracle of Mindfulness", author: "Thich Nhat Hanh", insight: "практики осознанности в повседневной жизни" },
+    { title: "Zen Mind, Beginner's Mind", author: "Shunryu Suzuki", insight: "введение в практику и философию дзэн" },
+    { title: "Ayurvedic Cooking for Self-Healing", author: "Usha Lad", insight: "аюрведические принципы питания и приготовления пищи" },
+    { title: "Healing with Whole Foods", author: "Paul Pitchford", insight: "использование питания по принципам восточной медицины" },
+    { title: "Food Rules", author: "Michael Pollan", insight: "простые правила здорового питания" },
+    { title: "Eat to Beat Disease", author: "William Li", insight: "научный подход к питанию для профилактики болезней" },
+    { title: "The Mindful Athlete", author: "George Mumford", insight: "использование mindfulness в спорте для peak performance" },
+    { title: "Why We Sleep", author: "Matthew Walker", insight: "важность сна, влияние на здоровье и когнитивные функции" },
+    { title: "The Sleep Solution", author: "W. Chris Winter", insight: "решение проблем со сном, гигиена сна" },
+    { title: "Rest", author: "Alex Soojung-Kim Pang", insight: "важность отдыха для продуктивности и креативности" },
+    { title: "Spark", author: "John J. Ratey", insight: "влияние физических упражнений на мозг и психическое здоровье" },
+    { title: "The 4-Hour Body", author: "Timothy Ferriss", insight: "эксперименты по оптимизации тела и здоровья" },
+    { title: "The Body Keeps the Score", author: "Bessel van der Kolk", insight: "связь травмы, психики и тела, методы исцеления" },
+    { title: "The Power of When", author: "Michael Breus", insight: "хронобиология, оптимальное время для деятельности" },
+    { title: "Yoga Anatomy", author: "Leslie Kaminoff", insight: "анатомическое обоснование асан йоги" },
+    { title: "Meditation for Beginners", author: "Jack Kornfield", insight: "введение в практику медитации" },
   ],
   finance: [
-    { title: "Богатый папа, бедный папа", author: "Роберт Кийосаки", insight: "финансовое мышление, активы vs пассивы" },
-    { title: "Психология денег", author: "Морган Хаузел", insight: "поведенческие аспекты финансов" },
-    { title: "Самый богатый человек в Вавилоне", author: "Джордж Клейсон", insight: "базовые принципы накопления и инвестирования" },
-    { title: "Думай и богатей", author: "Наполеон Хилл", insight: "сила намерения и визуализации в финансах" },
+    { title: "Кармический менеджмент", author: "Майкл Роуч", insight: "связь кармы и бизнеса, процветание через даяние" },
+    { title: "Самый богатый человек в Вавилоне", author: "Джордж Клейсон", insight: "финансовая грамотность, сбережение, инвестиции" },
+    { title: "Богатый папа, бедный папа", author: "Роберт Кийосаки", insight: "финансовое мышление, активы и пассивы" },
+    { title: "Путь к финансовой свободе", author: "Бодо Шефер", insight: "практические шаги к финансовой независимости" },
+    { title: "The Psychology of Money", author: "Морган Хаузел", insight: "психологические аспекты управления деньгами" },
+    { title: "Your Money or Your Life", author: "Викки Робин, Джо Домингес", insight: "финансовая независимость, осознанное отношение к деньгам" },
+    { title: "The Simple Path to Wealth", author: "Джей Эл Коллинз", insight: "инвестирование в индексные фонды, простота" },
+    { title: "Деньги. Мастер игры", author: "Тони Роббинс", insight: "стратегии финансового успеха, психология" },
+    { title: "The Millionaire Next Door", author: "Томас Стэнли, Уильям Данко", insight: "привычки и образ жизни реальных миллионеров" },
+    { title: "Финансовый дневник", author: "Практическое руководство", insight: "учёт доходов и расходов, управление бюджетом" },
+    { title: "Сила подсознания", author: "Джон Кехо", insight: "использование силы разума для достижения целей" },
+    { title: "Законы победителей", author: "Бодо Шефер", insight: "установки и стратегии для успеха в бизнесе и жизни" },
+    { title: "Секрет", author: "Ронда Берн", insight: "закон притяжения, визуализация желаний" },
+    { title: "Думай и богатей", author: "Наполеон Хилл", insight: "принципы успеха, основанные на исследовании богатых людей" },
+    { title: "Динамические законы процветания", author: "Кэтрин Пондер", insight: "духовные принципы изобилия и процветания" },
+    { title: "Магия утра. Деньги", author: "Хэл Элрод", insight: "утренние ритуалы для финансового успеха" },
+    { title: "Creating Affluence", author: "Дипак Чопра", insight: "связь сознания и материального изобилия" },
+    { title: "Отдел продаж по захвату рынка", author: "Михаил Гребенюк", insight: "практические техники продаж и маркетинга" },
+    { title: "Business for Punks", author: "Джеймс Уотт", insight: "нетрадиционный подход к ведению бизнеса" },
+    { title: "Rework", author: "Джейсон Фрайд, Дэвид Ханссон", insight: "современный, упрощённый подход к бизнесу и продуктивности" },
   ],
 };
 
-// Get relevant books for a sphere (max 3-5)
+// Get relevant books for a sphere (randomly pick 4-5 from the list)
 function getRelevantBooks(sphere?: string): string {
   if (!sphere) return "";
   const books = KNOWLEDGE_BASE[sphere];
   if (!books || books.length === 0) return "";
-  return books.map(b => `- «${b.title}» (${b.author}) — ${b.insight}`).join("\n");
+  // Shuffle and pick up to 5 to keep prompt size manageable
+  const shuffled = [...books].sort(() => Math.random() - 0.5);
+  const selected = shuffled.slice(0, 5);
+  return selected.map(b => `- «${b.title}» (${b.author}) — ${b.insight}`).join("\n");
 }
 
 // Conversation stages (FSM)
