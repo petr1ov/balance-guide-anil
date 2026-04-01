@@ -26,6 +26,42 @@ const SPHERES = [
   { key: "finance", ru: "Финансы", en: "Finance", hi: "वित्त" },
 ];
 
+// Knowledge base: books by sphere (3-5 per sphere)
+const KNOWLEDGE_BASE: Record<string, { title: string; author: string; insight: string }[]> = {
+  spirituality: [
+    { title: "Бхагавад-гита как она есть", author: "Прабхупада", insight: "дхарма, карма, долг, служение" },
+    { title: "Автобиография йога", author: "Парамаханса Йогананда", insight: "медитация, самопознание, духовный путь" },
+    { title: "Сила момента сейчас", author: "Экхарт Толле", insight: "присутствие, осознанность, внутренний покой" },
+    { title: "Семь духовных законов успеха", author: "Дипак Чопра", insight: "намерение, непривязанность, дхарма" },
+  ],
+  relationships: [
+    { title: "5 языков любви", author: "Гэри Чепмен", insight: "понимание языка любви партнёра" },
+    { title: "Мужчины с Марса, женщины с Венеры", author: "Джон Грэй", insight: "различия в коммуникации полов" },
+    { title: "Ненасильственное общение", author: "Маршалл Розенберг", insight: "эмпатия, выражение потребностей без агрессии" },
+    { title: "Привязанность", author: "Амир Левин", insight: "типы привязанности и их влияние на отношения" },
+  ],
+  health: [
+    { title: "Аюрведа. Наука самоисцеления", author: "Васант Лад", insight: "доши, питание, образ жизни по аюрведе" },
+    { title: "Атомные привычки", author: "Джеймс Клир", insight: "маленькие привычки, системный подход к здоровью" },
+    { title: "Почему мы спим", author: "Мэттью Уолкер", insight: "важность сна для здоровья и энергии" },
+    { title: "Тело ведёт счёт", author: "Бессел ван дер Колк", insight: "связь тела и психики, травмы" },
+  ],
+  finance: [
+    { title: "Богатый папа, бедный папа", author: "Роберт Кийосаки", insight: "финансовое мышление, активы vs пассивы" },
+    { title: "Психология денег", author: "Морган Хаузел", insight: "поведенческие аспекты финансов" },
+    { title: "Самый богатый человек в Вавилоне", author: "Джордж Клейсон", insight: "базовые принципы накопления и инвестирования" },
+    { title: "Думай и богатей", author: "Наполеон Хилл", insight: "сила намерения и визуализации в финансах" },
+  ],
+};
+
+// Get relevant books for a sphere (max 3-5)
+function getRelevantBooks(sphere?: string): string {
+  if (!sphere) return "";
+  const books = KNOWLEDGE_BASE[sphere];
+  if (!books || books.length === 0) return "";
+  return books.map(b => `- «${b.title}» (${b.author}) — ${b.insight}`).join("\n");
+}
+
 // Conversation stages (FSM)
 const STAGES = {
   IDLE: "idle",
