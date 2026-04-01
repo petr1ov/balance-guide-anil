@@ -1441,15 +1441,22 @@ serve(async (req) => {
       // Save user message
       await saveChatMessage(supabaseAdmin, telegramId, "user", userText);
 
-      // Get the updated state after processing the message
+      // Detect current sphere from conversation state for knowledge base
       const stateForAI = await getConversationState(supabaseAdmin, telegramId);
+      const currentSphereIndex = stateForAI.point_a_index || stateForAI.point_b_index || stateForAI.current_sphere_index || 0;
+      const currentSphere = currentSphereIndex < SPHERES.length ? SPHERES[currentSphereIndex].key : undefined;
       
       const aiResponse = await askAnil(
         supabaseAdmin,
         telegramId,
         messagesForAI, 
         userLanguage, 
-        profile?.jyotish_summary || undefined
+        {
+          jyotishSummary: profile?.jyotish_summary || undefined,
+          userName: profile?.name,
+          userGender: profile?.gender,
+          currentSphere,
+        }
       );
 
       // IMPORTANT: Do NOT infer/override stage from AI text.
