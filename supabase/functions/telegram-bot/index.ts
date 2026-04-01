@@ -1532,12 +1532,22 @@ serve(async (req) => {
         // Save user message (with voice indicator)
         await saveChatMessage(supabaseAdmin, telegramId, "user", `🎙 ${transcribedText}`);
 
+        // Detect current sphere for knowledge base
+        const voiceState = await getConversationState(supabaseAdmin, telegramId);
+        const voiceSphereIndex = voiceState.point_a_index || voiceState.point_b_index || voiceState.current_sphere_index || 0;
+        const voiceCurrentSphere = voiceSphereIndex < SPHERES.length ? SPHERES[voiceSphereIndex].key : undefined;
+
         const aiResponse = await askAnil(
           supabaseAdmin,
           telegramId,
           messagesForAI, 
           userLanguage, 
-          profile?.jyotish_summary || undefined
+          {
+            jyotishSummary: profile?.jyotish_summary || undefined,
+            userName: profile?.name,
+            userGender: profile?.gender,
+            currentSphere: voiceCurrentSphere,
+          }
         );
 
         // IMPORTANT: Do NOT infer/override stage from AI text.
