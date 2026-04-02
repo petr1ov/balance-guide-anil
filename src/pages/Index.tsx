@@ -7,6 +7,7 @@ import ReminderSettingsScreen from "@/screens/ReminderSettingsScreen";
 import SphereDetailsScreen from "@/screens/SphereDetailsScreen";
 import SphereProgressScreen from "@/screens/SphereProgressScreen";
 import LanguageScreen from "@/screens/LanguageScreen";
+import AboutMeScreen from "@/screens/AboutMeScreen";
 import ProgressHistoryScreen from "@/screens/ProgressHistoryScreen";
 import OnboardingScreen from "@/screens/OnboardingScreen";
 import SubscriptionScreen from "@/screens/SubscriptionScreen";
