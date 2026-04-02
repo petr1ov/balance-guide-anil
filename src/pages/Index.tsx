@@ -19,7 +19,7 @@ import { BalanceScores, DEFAULT_SCORES, SphereKey } from "@/types/balance";
 import { trackEvent } from "@/lib/analytics";
 
 type TabType = "home" | "balance" | "profile";
-type SubScreen = "none" | "reminders" | "sphereDetails" | "sphereProgress" | "language" | "history" | "onboarding" | "subscription";
+type SubScreen = "none" | "reminders" | "sphereDetails" | "sphereProgress" | "language" | "history" | "onboarding" | "subscription" | "aboutMe";
 
 interface SphereDetail {
   sphere: string;
