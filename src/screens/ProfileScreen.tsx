@@ -39,6 +39,7 @@ const ProfileScreen = ({
   onOpenHistory,
   onChangeMode,
   onOpenSubscription,
+  onOpenAboutMe,
 }: ProfileScreenProps) => {
   const { t } = useTranslation(language);
 
