@@ -317,6 +317,15 @@ const Index = () => {
       );
     }
 
+    if (subScreen === "aboutMe") {
+      return (
+        <AboutMeScreen
+          language={language as Language}
+          onBack={handleBackFromSubScreen}
+        />
+      );
+    }
+
     // If onboarding not completed, show onboarding screen automatically
     if (onboardingCompleted === false) {
       return (
