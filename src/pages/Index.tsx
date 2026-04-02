@@ -7,6 +7,7 @@ import ReminderSettingsScreen from "@/screens/ReminderSettingsScreen";
 import SphereDetailsScreen from "@/screens/SphereDetailsScreen";
 import SphereProgressScreen from "@/screens/SphereProgressScreen";
 import LanguageScreen from "@/screens/LanguageScreen";
+import AboutMeScreen from "@/screens/AboutMeScreen";
 import ProgressHistoryScreen from "@/screens/ProgressHistoryScreen";
 import OnboardingScreen from "@/screens/OnboardingScreen";
 import SubscriptionScreen from "@/screens/SubscriptionScreen";
@@ -18,7 +19,7 @@ import { BalanceScores, DEFAULT_SCORES, SphereKey } from "@/types/balance";
 import { trackEvent } from "@/lib/analytics";
 
 type TabType = "home" | "balance" | "profile";
-type SubScreen = "none" | "reminders" | "sphereDetails" | "sphereProgress" | "language" | "history" | "onboarding" | "subscription";
+type SubScreen = "none" | "reminders" | "sphereDetails" | "sphereProgress" | "language" | "history" | "onboarding" | "subscription" | "aboutMe";
 
 interface SphereDetail {
   sphere: string;
@@ -220,6 +221,11 @@ const Index = () => {
     setSubScreen("subscription");
   };
 
+  const handleOpenAboutMe = () => {
+    trackEvent("about_me_viewed");
+    setSubScreen("aboutMe");
+  };
+
   const handleBackFromSubScreen = () => {
     setSubScreen("none");
     setSelectedSphere(null);
@@ -311,6 +317,15 @@ const Index = () => {
       );
     }
 
+    if (subScreen === "aboutMe") {
+      return (
+        <AboutMeScreen
+          language={language as Language}
+          onBack={handleBackFromSubScreen}
+        />
+      );
+    }
+
     // If onboarding not completed, show onboarding screen automatically
     if (onboardingCompleted === false) {
       return (
@@ -364,6 +379,7 @@ const Index = () => {
             onOpenLanguage={handleOpenLanguage}
             onOpenHistory={handleOpenHistory}
             onOpenSubscription={handleOpenSubscription}
+            onOpenAboutMe={handleOpenAboutMe}
           />
         );
       default:
