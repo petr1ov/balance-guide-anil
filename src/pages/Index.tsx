@@ -379,6 +379,7 @@ const Index = () => {
             onOpenLanguage={handleOpenLanguage}
             onOpenHistory={handleOpenHistory}
             onOpenSubscription={handleOpenSubscription}
+            onOpenAboutMe={handleOpenAboutMe}
           />
         );
       default:
