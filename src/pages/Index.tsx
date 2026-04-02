@@ -221,6 +221,11 @@ const Index = () => {
     setSubScreen("subscription");
   };
 
+  const handleOpenAboutMe = () => {
+    trackEvent("about_me_viewed");
+    setSubScreen("aboutMe");
+  };
+
   const handleBackFromSubScreen = () => {
     setSubScreen("none");
     setSelectedSphere(null);
