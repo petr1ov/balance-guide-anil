@@ -16,6 +16,7 @@ interface ProfileScreenProps {
   onOpenHistory: () => void;
   onChangeMode?: () => void;
   onOpenSubscription?: () => void;
+  onOpenAboutMe?: () => void;
 }
 
 const LANGUAGE_LABELS: Record<Language, string> = {
