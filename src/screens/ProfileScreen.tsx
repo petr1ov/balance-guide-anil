@@ -209,6 +209,23 @@ const ProfileScreen = ({
           </button>
 
           <button 
+            onClick={onOpenAboutMe}
+            className="w-full flex items-center gap-4 p-4 bg-card rounded-2xl shadow-soft border border-border/50 hover:bg-secondary/30 transition-colors text-left"
+          >
+            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+              <UserCircle className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-medium text-foreground">
+                {language === "ru" ? "О себе" : language === "hi" ? "मेरे बारे में" : "About Me"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {language === "ru" ? "Имя, пол, дата рождения" : language === "hi" ? "नाम, लिंग, जन्म तिथि" : "Name, gender, date of birth"}
+              </p>
+            </div>
+          </button>
+
+          <button 
             onClick={onOpenLanguage}
             className="w-full flex items-center gap-4 p-4 bg-card rounded-2xl shadow-soft border border-border/50 hover:bg-secondary/30 transition-colors text-left"
           >
