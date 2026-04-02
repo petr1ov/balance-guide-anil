@@ -1,4 +1,4 @@
-import { Settings, RefreshCw, Target, TrendingUp, Globe, Bell, Sparkles, Zap, CreditCard } from "lucide-react";
+import { Settings, RefreshCw, Target, TrendingUp, Globe, Bell, Sparkles, Zap, CreditCard, UserCircle } from "lucide-react";
 import { useTranslation, Language } from "@/lib/i18n";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
